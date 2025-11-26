@@ -4,7 +4,6 @@ import { Button } from './ui/button'
 import { AspectRatio } from './ui/aspect-ratio'
 import { 
   Grid3X3,
-  Download, 
   Square,
   Timer,
   ImageIcon
