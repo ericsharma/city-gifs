@@ -21,9 +21,7 @@ interface FrameCaptureGridProps {
   isCapturing: boolean
   onStopCapture: () => void
   onCreateGIF: () => void
-  onDownloadGIF: () => void
   isCreatingGIF: boolean
-  gifBlob: Blob | null
   maxFrames: number
   captureProgress: number
 }
@@ -33,9 +31,7 @@ export function FrameCaptureGrid({
   isCapturing,
   onStopCapture,
   onCreateGIF,
-  onDownloadGIF,
   isCreatingGIF,
-  gifBlob,
   maxFrames,
   captureProgress
 }: FrameCaptureGridProps) {
@@ -65,8 +61,8 @@ export function FrameCaptureGrid({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Frame Grid */}
-        <div className="grid grid-cols-4 gap-2 max-h-96 overflow-y-auto">
+        {/* Frame Grid - Mobile optimized */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-80 overflow-y-auto">
           {frames.map((frame, index) => (
             <div key={frame.timestamp} className="relative">
               <AspectRatio ratio={16 / 9} className="bg-muted overflow-hidden rounded-md">
@@ -108,45 +104,6 @@ export function FrameCaptureGrid({
           </div>
         )}
 
-        {/* GIF Preview */}
-        {gifBlob && (
-          <div className="space-y-3 border-t pt-4">
-            <div className="text-center">
-              <h3 className="text-sm font-medium mb-3">Generated GIF Preview</h3>
-              <div className="inline-block border rounded-lg overflow-hidden bg-muted/50">
-                <img
-                  src={URL.createObjectURL(gifBlob)}
-                  alt="Generated GIF"
-                  className="max-w-full max-h-48 object-contain"
-                  onLoad={(e) => {
-                    // Clean up the blob URL after image loads
-                    setTimeout(() => {
-                      URL.revokeObjectURL((e.target as HTMLImageElement).src)
-                    }, 5000)
-                  }}
-                />
-              </div>
-            </div>
-            <div className="flex justify-center gap-2">
-              <Button
-                onClick={onDownloadGIF}
-                variant="default"
-                size="sm"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download GIF
-              </Button>
-              <Button
-                onClick={onCreateGIF}
-                variant="outline"
-                size="sm"
-                disabled={isCreatingGIF}
-              >
-                {isCreatingGIF ? 'Creating...' : 'Create New GIF'}
-              </Button>
-            </div>
-          </div>
-        )}
 
         {/* Controls */}
         {frames.length > 0 && (
@@ -175,7 +132,7 @@ export function FrameCaptureGrid({
                 </Button>
               )}
               
-              {!isCapturing && frames.length >= 2 && !gifBlob && (
+              {!isCapturing && frames.length >= 2 && (
                 <Button
                   onClick={onCreateGIF}
                   disabled={isCreatingGIF}

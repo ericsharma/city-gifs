@@ -56,63 +56,65 @@ export function CameraSelector({
           />
         </div>
 
-        <div>
-          <label className='text-sm font-medium mb-2 block'>Borough</label>
-          <Select value={selectedArea} onValueChange={setSelectedArea}>
-            <SelectTrigger>
-              <SelectValue placeholder='Select borough' />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value='all'>All Boroughs</SelectItem>
-              {areas.map((area) => (
-                <SelectItem key={area} value={area}>
-                  {area}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <label className='text-sm font-medium mb-2 block'>
-            Camera ({filteredCameras.length} available)
-          </label>
-          <Select
-            value={selectedCamera?.id || ''}
-            onValueChange={(value) => {
-              const camera = cameras.find((c) => c.id === value);
-              if (camera) onCameraSelect(camera);
-            }}
-            disabled={isLoading}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder='Choose a camera' />
-            </SelectTrigger>
-            <SelectContent className='max-h-[300px]'>
-              {filteredCameras.map((camera) => (
-                <SelectItem key={camera.id} value={camera.id}>
-                  <div className='flex flex-col'>
-                    <span className='font-medium'>{camera.name}</span>
-                    <span className='text-xs text-muted-foreground'>
-                      {camera.area}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className='text-sm font-medium mb-2 block'>Borough</label>
+            <Select value={selectedArea} onValueChange={setSelectedArea}>
+              <SelectTrigger>
+                <SelectValue placeholder='Select borough' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='all'>All Boroughs</SelectItem>
+                {areas.map((area) => (
+                  <SelectItem key={area} value={area}>
+                    {area}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className='text-sm font-medium mb-2 block'>
+              Camera ({filteredCameras.length} available)
+            </label>
+            <Select
+              value={selectedCamera?.id || ''}
+              onValueChange={(value) => {
+                const camera = cameras.find((c) => c.id === value);
+                if (camera) onCameraSelect(camera);
+              }}
+              disabled={isLoading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder='Choose a camera' />
+              </SelectTrigger>
+              <SelectContent className='max-h-[300px]'>
+                {filteredCameras.map((camera) => (
+                  <SelectItem key={camera.id} value={camera.id}>
+                    <div className='flex flex-col'>
+                      <span className='font-medium text-sm'>{camera.name}</span>
+                      <span className='text-xs text-muted-foreground'>
+                        {camera.area}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {selectedCamera && (
           <div className='p-3 bg-muted rounded-lg'>
-            <h4 className='font-medium'>{selectedCamera.name}</h4>
-            <p className='text-sm text-muted-foreground'>
-              {selectedCamera.area}
-            </p>
-            <p className='text-xs text-muted-foreground mt-1'>
-              Lat: {selectedCamera.latitude.toFixed(6)}, Lng:{' '}
-              {selectedCamera.longitude.toFixed(6)}
-            </p>
+            <h4 className='font-medium text-sm'>{selectedCamera.name}</h4>
+            <div className='flex justify-between items-center mt-1'>
+              <p className='text-sm text-muted-foreground'>
+                {selectedCamera.area}
+              </p>
+              <p className='text-xs text-muted-foreground'>
+                {selectedCamera.latitude.toFixed(4)}, {selectedCamera.longitude.toFixed(4)}
+              </p>
+            </div>
           </div>
         )}
       </CardContent>
