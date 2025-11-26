@@ -1,0 +1,16 @@
+{
+  "name": "City GIFs",
+  "short_name": "CityGIFs",
+  "description": "Create GIFs from city cameras",
+  "display": "standalone",
+  "start_url": ".",
+  "theme_color": "#000000",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

@@ -6,6 +6,11 @@ import App from './App.tsx'
 
 const queryClient = new QueryClient()
 
+// Register service worker for PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
