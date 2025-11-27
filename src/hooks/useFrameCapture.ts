@@ -44,7 +44,8 @@ export const useFrameCapture = ({
     gifBlob,
     progress,
     createGIF: createGIFFromBlobs,
-    downloadGIF
+    downloadGIF,
+    clearFrames: clearGIFState
   } = useGIFCreator({ framerate, maxFrames })
 
   // Update ref when frames change
@@ -54,7 +55,9 @@ export const useFrameCapture = ({
     setIsCapturing(true)
     setFrames([])
     framesRef.current = []
-  }, [])
+    // Clear any existing GIF blob to prevent UI overlap
+    clearGIFState()
+  }, [clearGIFState])
 
   const stopCapture = useCallback(() => {
     setIsCapturing(false)

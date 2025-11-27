@@ -14,7 +14,7 @@ type AppScreen = 'camera-selection' | 'live-preview' | 'captured-frames'
 function App() {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('camera-selection')
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null)
-  const [pollingInterval, setPollingInterval] = useState(3)
+  const [pollingInterval, setPollingInterval] = useState(1)
   const [isPollingEnabled, setIsPollingEnabled] = useState(false)
   const [isGifModalOpen, setIsGifModalOpen] = useState(false)
   
