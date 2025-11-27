@@ -1,13 +1,10 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { AspectRatio } from './ui/aspect-ratio';
 import { ScrollableFrameGrid } from './ScrollableFrameGrid';
 import { 
   ArrowLeft,
   Timer,
-  Download,
-  Share2,
   Grid3X3
 } from 'lucide-react';
 
@@ -28,7 +25,6 @@ interface FullScreenCapturedFramesProps {
   isCreatingGIF: boolean;
   captureProgress: number;
   gifBlob?: Blob | null;
-  onDownloadGIF?: () => void;
 }
 
 export function FullScreenCapturedFrames({
@@ -40,33 +36,13 @@ export function FullScreenCapturedFrames({
   onFrameSelectionToggle,
   isCreatingGIF,
   captureProgress,
-  gifBlob,
-  onDownloadGIF
+  gifBlob
 }: FullScreenCapturedFramesProps) {
   const [selectedFrame, setSelectedFrame] = useState<number | null>(null);
 
   const estimatedDuration = frames.length > 1 
     ? (frames[frames.length - 1].timestamp - frames[0].timestamp) / 1000 
     : 0;
-
-  const handleShare = async () => {
-    if (gifBlob && navigator.share) {
-      try {
-        const file = new File([gifBlob], 'nyc-camera.gif', { type: 'image/gif' });
-        await navigator.share({
-          title: 'NYC Camera GIF',
-          text: `Live GIF from ${camera.name} in ${camera.area}`,
-          files: [file]
-        });
-      } catch (error) {
-        console.log('Share failed:', error);
-        // Fallback to download
-        if (onDownloadGIF) onDownloadGIF();
-      }
-    } else if (onDownloadGIF) {
-      onDownloadGIF();
-    }
-  };
 
   if (frames.length === 0) {
     return (
@@ -133,29 +109,15 @@ export function FullScreenCapturedFrames({
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-0">
-        {/* GIF Preview Section - Fixed */}
+        {/* GIF Ready Notification */}
         {gifBlob && (
           <div className="flex-shrink-0 p-4 border-b bg-muted/50">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium text-sm">Generated GIF</h3>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleShare}>
-                  <Share2 className="h-3 w-3 mr-1" />
-                  Share
-                </Button>
-                <Button variant="outline" size="sm" onClick={onDownloadGIF}>
-                  <Download className="h-3 w-3 mr-1" />
-                  Download
-                </Button>
-              </div>
+            <div className="text-center">
+              <h3 className="font-medium text-sm mb-2">🎉 GIF Created!</h3>
+              <p className="text-xs text-muted-foreground">
+                Your GIF is ready! Check the sharing modal for download and sharing options.
+              </p>
             </div>
-            <AspectRatio ratio={16 / 9} className="bg-muted overflow-hidden rounded-lg">
-              <img
-                src={URL.createObjectURL(gifBlob)}
-                alt="Generated GIF"
-                className="w-full h-full object-cover"
-              />
-            </AspectRatio>
           </div>
         )}
 
@@ -183,13 +145,13 @@ export function FullScreenCapturedFrames({
           onClick={() => setSelectedFrame(null)}
         >
           <div className="relative max-w-4xl w-full">
-            <AspectRatio ratio={16 / 9} className="bg-black overflow-hidden rounded-lg">
+            <div className="bg-black overflow-hidden rounded-lg aspect-video">
               <img
                 src={frames[selectedFrame].url}
                 alt={`Frame ${selectedFrame + 1} preview`}
                 className="w-full h-full object-contain"
               />
-            </AspectRatio>
+            </div>
             <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-2 rounded">
               Frame {selectedFrame + 1} of {frames.length}
             </div>

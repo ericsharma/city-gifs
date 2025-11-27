@@ -150,7 +150,6 @@ function App() {
           isCreatingGIF={isCreatingGIF}
           captureProgress={progress}
           gifBlob={gifBlob}
-          onDownloadGIF={downloadGIF}
         />
         
         {/* GIF Modal */}
@@ -161,6 +160,7 @@ function App() {
           onDownloadGIF={downloadGIF}
           onCreateNewGIF={handleCreateGIF}
           isCreatingGIF={isCreatingGIF}
+          camera={selectedCamera}
         />
       </div>
     )
