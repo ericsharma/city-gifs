@@ -54,7 +54,7 @@ export function FullScreenLivePreview({
 }: FullScreenLivePreviewProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const [controlsTimeout, setControlsTimeout] = useState<number | null>(null);
+  const controlsTimeoutRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number>(0);
   
   const { data: cameraImage, isLoading, error } = useCameraPolling({
@@ -77,11 +77,11 @@ export function FullScreenLivePreview({
     if (showSettings || isCapturing) return;
 
     const resetTimeout = () => {
-      setControlsTimeout(prev => {
-        if (prev) clearTimeout(prev);
-        return setTimeout(() => setShowControls(false), 4000);
-      });
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
       setShowControls(true);
+      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 4000);
     };
 
     const handleInteraction = () => resetTimeout();
@@ -92,10 +92,10 @@ export function FullScreenLivePreview({
     window.addEventListener('click', handleInteraction);
     
     return () => {
-      setControlsTimeout(prev => {
-        if (prev) clearTimeout(prev);
-        return null;
-      });
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+        controlsTimeoutRef.current = null;
+      }
       window.removeEventListener('touchstart', handleInteraction);
       window.removeEventListener('click', handleInteraction);
     };
