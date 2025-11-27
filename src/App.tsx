@@ -42,12 +42,22 @@ function App() {
     setSelectedCamera(camera)
     setIsPollingEnabled(true)
     setCurrentScreen('live-preview')
+    
+    // Update URL with camera ID
+    const url = new URL(window.location.href)
+    url.searchParams.set('camera', camera.id)
+    window.history.pushState({}, '', url.toString())
   }
 
   const handleBackToCamera = () => {
     setCurrentScreen('camera-selection')
     setSelectedCamera(null)
     setIsPollingEnabled(false)
+    
+    // Remove camera ID from URL
+    const url = new URL(window.location.href)
+    url.searchParams.delete('camera')
+    window.history.pushState({}, '', url.toString())
   }
 
   const handleViewFrames = () => {
@@ -68,6 +78,21 @@ function App() {
     await createGIF()
     // Modal will open when gifBlob changes via useEffect
   }
+
+  // Check for camera ID in URL on app load
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const cameraId = urlParams.get('camera')
+    
+    if (cameraId) {
+      const camera = allCameras.find(cam => cam.id === cameraId)
+      if (camera) {
+        setSelectedCamera(camera)
+        setIsPollingEnabled(true)
+        setCurrentScreen('live-preview')
+      }
+    }
+  }, [])
 
   // Open modal when GIF is created
   useEffect(() => {
