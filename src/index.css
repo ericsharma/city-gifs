@@ -114,7 +114,55 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
+  
+  html, body {
     @apply bg-background text-foreground;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    /* Ensure proper mobile viewport behavior */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    /* Prevent zoom on inputs on iOS */
+    font-size: 16px;
+  }
+  
+  /* Allow text selection in input areas */
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  
+  /* Improve touch targets for mobile */
+  button, .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent rubber band scrolling on iOS */
+  body {
+    position: fixed;
+    overflow: hidden;
+  }
+  
+  /* But allow scrolling within app containers */
+  .scrollable {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Ensure full viewport usage */
+  #root {
+    height: 100vh;
+    height: 100dvh; /* Use dynamic viewport height where supported */
+    width: 100vw;
+    position: relative;
+    overflow: hidden;
   }
 }

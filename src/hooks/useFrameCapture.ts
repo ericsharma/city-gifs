@@ -5,6 +5,7 @@ interface CapturedFrame {
   blob: Blob
   timestamp: number
   url: string
+  selected?: boolean
 }
 
 interface UseFrameCaptureOptions {
@@ -26,6 +27,7 @@ interface UseFrameCaptureReturn {
   createGIF: () => Promise<void>
   downloadGIF: () => void
   setMaxFrames: (frames: number) => void
+  toggleFrameSelection: (index: number) => void
 }
 
 export const useFrameCapture = ({
@@ -76,7 +78,8 @@ export const useFrameCapture = ({
     const newFrame: CapturedFrame = {
       blob,
       timestamp: Date.now(),
-      url: URL.createObjectURL(blob)
+      url: URL.createObjectURL(blob),
+      selected: true // Default to selected
     }
 
 
@@ -94,13 +97,24 @@ export const useFrameCapture = ({
   }, [isCapturing, maxFrames])
 
   const createGIF = useCallback(async () => {
-    if (frames.length < 2) {
-      throw new Error('Need at least 2 frames to create a GIF')
+    const selectedFrames = frames.filter(frame => frame.selected !== false)
+    if (selectedFrames.length < 2) {
+      throw new Error('Need at least 2 selected frames to create a GIF')
     }
     
-    const blobs = frames.map(frame => frame.blob)
+    const blobs = selectedFrames.map(frame => frame.blob)
     await createGIFFromBlobs(blobs)
   }, [frames, createGIFFromBlobs])
+
+  const toggleFrameSelection = useCallback((index: number) => {
+    setFrames(current => 
+      current.map((frame, i) => 
+        i === index 
+          ? { ...frame, selected: frame.selected !== false ? false : true }
+          : frame
+      )
+    )
+  }, [])
 
   return {
     frames,
@@ -115,6 +129,7 @@ export const useFrameCapture = ({
     addFrame,
     createGIF,
     downloadGIF,
-    setMaxFrames
+    setMaxFrames,
+    toggleFrameSelection
   }
 }

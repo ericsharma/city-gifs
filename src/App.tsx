@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react'
 import type { Camera } from './types/Camera'
-import { CameraSelector } from './components/CameraSelector'
-import { CapturePreviewPanel } from './components/CapturePreviewPanel'
-import { FrameCaptureGrid } from './components/FrameCaptureGrid'
+import { FullScreenCameraSelector } from './components/FullScreenCameraSelector'
+import { FullScreenLivePreview } from './components/FullScreenLivePreview'
+import { FullScreenCapturedFrames } from './components/FullScreenCapturedFrames'
 import { GIFModal } from './components/GIFModal'
 import { useFrameCapture } from './hooks/useFrameCapture'
 
 // Import the camera data
 import { allCameras } from './data/cameras'
 
+type AppScreen = 'camera-selection' | 'live-preview' | 'captured-frames'
+
 function App() {
+  const [currentScreen, setCurrentScreen] = useState<AppScreen>('camera-selection')
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null)
   const [pollingInterval, setPollingInterval] = useState(3)
   const [isPollingEnabled, setIsPollingEnabled] = useState(false)
@@ -28,7 +31,8 @@ function App() {
     addFrame,
     createGIF,
     downloadGIF,
-    setMaxFrames
+    setMaxFrames,
+    toggleFrameSelection
   } = useFrameCapture({
     maxFrames: 30,
     framerate: 2
@@ -37,6 +41,21 @@ function App() {
   const handleCameraSelect = (camera: Camera) => {
     setSelectedCamera(camera)
     setIsPollingEnabled(true)
+    setCurrentScreen('live-preview')
+  }
+
+  const handleBackToCamera = () => {
+    setCurrentScreen('camera-selection')
+    setSelectedCamera(null)
+    setIsPollingEnabled(false)
+  }
+
+  const handleViewFrames = () => {
+    setCurrentScreen('captured-frames')
+  }
+
+  const handleBackToPreview = () => {
+    setCurrentScreen('live-preview')
   }
 
   const handleImageUpdate = (blob: Blob) => {
@@ -61,55 +80,55 @@ function App() {
     setIsGifModalOpen(false)
   }
 
-  return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-2xl mx-auto">
-        <header className="mb-6 text-center">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">NYC Camera GIFs</h1>
-          <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-            Create live GIFs from New York City traffic cameras
-          </p>
-        </header>
+  // Render current screen
+  if (currentScreen === 'camera-selection') {
+    return (
+      <FullScreenCameraSelector
+        cameras={allCameras}
+        onCameraSelect={handleCameraSelect}
+        isLoading={false}
+      />
+    )
+  }
 
-        {/* Mobile-first single column layout */}
-        <div className="space-y-6">
-          {/* 1. Camera Selection */}
-          <CameraSelector
-            cameras={allCameras}
-            selectedCamera={selectedCamera}
-            onCameraSelect={handleCameraSelect}
-          />
+  if (currentScreen === 'live-preview' && selectedCamera) {
+    return (
+      <FullScreenLivePreview
+        camera={selectedCamera}
+        pollingInterval={pollingInterval}
+        onPollingIntervalChange={setPollingInterval}
+        isPollingEnabled={isPollingEnabled}
+        onPollingEnabledChange={setIsPollingEnabled}
+        isCapturing={isCapturing}
+        onStartCapture={startCapture}
+        onStopCapture={stopCapture}
+        frameCount={frames.length}
+        maxFrames={maxFrames}
+        onMaxFramesChange={setMaxFrames}
+        onImageUpdate={handleImageUpdate}
+        onBackToCamera={handleBackToCamera}
+        onViewFrames={handleViewFrames}
+      />
+    )
+  }
 
-          {/* 2. Combined Capture & Preview */}
-          <CapturePreviewPanel
-            camera={selectedCamera}
-            pollingInterval={pollingInterval}
-            onPollingIntervalChange={setPollingInterval}
-            isPollingEnabled={isPollingEnabled}
-            onPollingEnabledChange={setIsPollingEnabled}
-            isCapturing={isCapturing}
-            onStartCapture={startCapture}
-            onStopCapture={stopCapture}
-            onClearFrames={clearFrames}
-            frameCount={frames.length}
-            maxFrames={maxFrames}
-            onMaxFramesChange={setMaxFrames}
-            onImageUpdate={handleImageUpdate}
-          />
-
-          {/* 3. Captured Frames */}
-          <FrameCaptureGrid
-            frames={frames}
-            isCapturing={isCapturing}
-            onStopCapture={stopCapture}
-            onCreateGIF={handleCreateGIF}
-            isCreatingGIF={isCreatingGIF}
-            maxFrames={maxFrames}
-            captureProgress={progress}
-          />
-        </div>
-
-        {/* 4. GIF Modal */}
+  if (currentScreen === 'captured-frames' && selectedCamera) {
+    return (
+      <div>
+        <FullScreenCapturedFrames
+          frames={frames}
+          camera={selectedCamera}
+          onBackToPreview={handleBackToPreview}
+          onClearFrames={clearFrames}
+          onCreateGIF={handleCreateGIF}
+          onFrameSelectionToggle={toggleFrameSelection}
+          isCreatingGIF={isCreatingGIF}
+          captureProgress={progress}
+          gifBlob={gifBlob}
+          onDownloadGIF={downloadGIF}
+        />
+        
+        {/* GIF Modal */}
         <GIFModal
           isOpen={isGifModalOpen}
           onClose={handleGifModalClose}
@@ -118,15 +137,17 @@ function App() {
           onCreateNewGIF={handleCreateGIF}
           isCreatingGIF={isCreatingGIF}
         />
-
-        <footer className="mt-8 text-center text-xs sm:text-sm text-muted-foreground">
-          <p>
-            Camera feeds provided by NYC Department of Transportation. 
-            Built with React, TypeScript, and FFmpeg.wasm.
-          </p>
-        </footer>
       </div>
-    </div>
+    )
+  }
+
+  // Fallback - shouldn't happen but return to camera selection
+  return (
+    <FullScreenCameraSelector
+      cameras={allCameras}
+      onCameraSelect={handleCameraSelect}
+      isLoading={false}
+    />
   )
 }
 
