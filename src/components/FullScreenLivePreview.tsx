@@ -77,10 +77,11 @@ export function FullScreenLivePreview({
     if (showSettings || isCapturing) return;
 
     const resetTimeout = () => {
-      if (controlsTimeout) clearTimeout(controlsTimeout);
+      setControlsTimeout(prev => {
+        if (prev) clearTimeout(prev);
+        return setTimeout(() => setShowControls(false), 4000);
+      });
       setShowControls(true);
-      const timeout = setTimeout(() => setShowControls(false), 4000);
-      setControlsTimeout(timeout);
     };
 
     const handleInteraction = () => resetTimeout();
@@ -91,11 +92,14 @@ export function FullScreenLivePreview({
     window.addEventListener('click', handleInteraction);
     
     return () => {
-      if (controlsTimeout) clearTimeout(controlsTimeout);
+      setControlsTimeout(prev => {
+        if (prev) clearTimeout(prev);
+        return null;
+      });
       window.removeEventListener('touchstart', handleInteraction);
       window.removeEventListener('click', handleInteraction);
     };
-  }, [showSettings, isCapturing, controlsTimeout]);
+  }, [showSettings, isCapturing]);
 
   const handleStartCapture = () => {
     if (!isPollingEnabled) {

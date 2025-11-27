@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { Camera } from './types/Camera'
 import { FullScreenCameraSelector } from './components/FullScreenCameraSelector'
 import { FullScreenLivePreview } from './components/FullScreenLivePreview'
@@ -68,11 +68,11 @@ function App() {
     setCurrentScreen('live-preview')
   }
 
-  const handleImageUpdate = (blob: Blob) => {
+  const handleImageUpdate = useCallback((blob: Blob) => {
     if (isCapturing) {
       addFrame(blob)
     }
-  }
+  }, [isCapturing, addFrame])
 
   const handleCreateGIF = async () => {
     await createGIF()
