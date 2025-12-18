@@ -134,11 +134,11 @@ export function FullScreenLivePreview({
             </div>
           </div>
         ) : cameraImage ? (
-          <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-black flex items-center justify-center">
             <img
               src={cameraImage.url}
               alt={`${camera.name} live feed`}
-              className="w-full h-full object-cover"
+              className="max-w-full max-h-full object-contain"
               onLoad={() => {
                 if (cameraImage.url.startsWith('blob:')) {
                   setTimeout(() => URL.revokeObjectURL(cameraImage.url), 5000);
