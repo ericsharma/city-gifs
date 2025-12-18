@@ -64,16 +64,18 @@ export const useFrameCapture = ({
   }, [])
 
   const clearFrames = useCallback(() => {
-    // Clean up blob URLs
-    frames.forEach(frame => {
-      if (frame.url.startsWith('blob:')) {
-        URL.revokeObjectURL(frame.url)
-      }
+    // Clean up blob URLs using functional setState to avoid stale closure
+    setFrames(current => {
+      current.forEach(frame => {
+        if (frame.url.startsWith('blob:')) {
+          URL.revokeObjectURL(frame.url)
+        }
+      })
+      return []
     })
-    setFrames([])
     framesRef.current = []
     setIsCapturing(false)
-  }, [frames])
+  }, [])
 
   const addFrame = useCallback((blob: Blob) => {
     if (!isCapturing) return

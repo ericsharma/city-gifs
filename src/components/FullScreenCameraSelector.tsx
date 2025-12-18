@@ -36,7 +36,7 @@ export function FullScreenCameraSelector({
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
     const matchesArea = selectedArea === 'all' || camera.area === selectedArea;
-    const isOnline = camera.isOnline === 'true';
+    const isOnline = camera.isOnline;
     return matchesSearch && matchesArea && isOnline;
   });
 

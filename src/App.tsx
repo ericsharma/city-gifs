@@ -69,10 +69,8 @@ function App() {
   }
 
   const handleImageUpdate = useCallback((blob: Blob) => {
-    if (isCapturing) {
-      addFrame(blob)
-    }
-  }, [isCapturing, addFrame])
+    addFrame(blob) // addFrame handles the capturing check internally
+  }, [addFrame])
 
   const handleCreateGIF = async () => {
     await createGIF()

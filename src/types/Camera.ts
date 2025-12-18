@@ -4,6 +4,6 @@ export interface Camera {
   latitude: number;
   longitude: number;
   area: string;
-  isOnline: string;
+  isOnline: boolean;
   imageUrl: string;
 }
