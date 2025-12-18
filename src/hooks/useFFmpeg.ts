@@ -104,11 +104,11 @@ export const useFFmpeg = (): UseFFmpegReturn => {
       } catch (e) {
         console.warn('Failed to cleanup files:', e)
       }
-      
-      const dataUint8 = data instanceof ArrayBuffer 
-        ? new Uint8Array(data)
-        : new Uint8Array(data as ArrayBuffer)
-      return new Blob([dataUint8.buffer], { type: 'image/gif' })
+
+      const dataUint8 = data instanceof Uint8Array 
+        ? new Uint8Array(data) 
+        : new TextEncoder().encode(data as string)
+      return new Blob([dataUint8], { type: 'image/gif' })
     } catch (error) {
       console.error('Failed to create GIF:', error)
       throw error
