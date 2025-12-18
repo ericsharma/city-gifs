@@ -11,7 +11,6 @@ import {
 } from './ui/dialog'
 import { 
   Download, 
-  X, 
   Share2, 
   ChevronDown, 
   Copy, 
@@ -115,16 +114,8 @@ export function GIFModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md mx-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle>
             Generated GIF Preview
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </DialogTitle>
           <DialogDescription>
             Your GIF has been successfully created from the captured frames.
