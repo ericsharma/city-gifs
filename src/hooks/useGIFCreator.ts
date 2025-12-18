@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useFrameManager, type BaseFrame } from './useFrameManager'
 import { useFFmpeg } from './useFFmpeg'
 
 interface UseGIFCreatorOptions {
@@ -6,10 +7,7 @@ interface UseGIFCreatorOptions {
   maxFrames?: number
 }
 
-interface CapturedFrame {
-  blob: Blob
-  timestamp: number
-}
+type CapturedFrame = BaseFrame
 
 interface UseGIFCreatorReturn {
   frames: CapturedFrame[]
@@ -29,44 +27,29 @@ export const useGIFCreator = ({
   framerate = 2,
   maxFrames = 50
 }: UseGIFCreatorOptions = {}): UseGIFCreatorReturn => {
-  const [frames, setFrames] = useState<CapturedFrame[]>([])
-  const [isCapturing, setIsCapturing] = useState(false)
   const [isCreatingGIF, setIsCreatingGIF] = useState(false)
   const [gifBlob, setGifBlob] = useState<Blob | null>(null)
+  
+  const frameManager = useFrameManager<CapturedFrame>({
+    maxFrames,
+    createBlobUrl: false,
+    defaultSelected: false
+  })
   
   const { loadFFmpeg, createGIF: ffmpegCreateGIF, progress, isLoaded } = useFFmpeg()
 
   const startCapture = useCallback(() => {
-    setIsCapturing(true)
-    setFrames([])
+    frameManager.startCapture()
     setGifBlob(null)
-  }, [])
+  }, [frameManager.startCapture])
 
-  const stopCapture = useCallback(() => {
-    setIsCapturing(false)
-  }, [])
-
-  const addFrame = useCallback((blob: Blob) => {
-    if (!isCapturing) return
-    
-    setFrames(current => {
-      const newFrame: CapturedFrame = {
-        blob,
-        timestamp: Date.now()
-      }
-      
-      const updatedFrames = [...current, newFrame]
-      
-      if (updatedFrames.length > maxFrames) {
-        return updatedFrames.slice(-maxFrames)
-      }
-      
-      return updatedFrames
-    })
-  }, [isCapturing, maxFrames])
+  const clearFrames = useCallback(() => {
+    frameManager.clearFrames()
+    setGifBlob(null)
+  }, [frameManager.clearFrames])
 
   const createGIF = useCallback(async (inputBlobs?: Blob[]) => {
-    const blobsToUse = inputBlobs || frames.map(frame => frame.blob)
+    const blobsToUse = inputBlobs || frameManager.frames.map(frame => frame.blob)
     
     if (blobsToUse.length === 0) {
       throw new Error('No frames provided')
@@ -88,13 +71,7 @@ export const useGIFCreator = ({
     } finally {
       setIsCreatingGIF(false)
     }
-  }, [frames, framerate, isLoaded, loadFFmpeg, ffmpegCreateGIF])
-
-  const clearFrames = useCallback(() => {
-    setFrames([])
-    setGifBlob(null)
-    setIsCapturing(false)
-  }, [])
+  }, [frameManager.frames, framerate, isLoaded, loadFFmpeg, ffmpegCreateGIF])
 
   const downloadGIF = useCallback(() => {
     if (!gifBlob) return
@@ -110,14 +87,14 @@ export const useGIFCreator = ({
   }, [gifBlob])
 
   return {
-    frames,
-    isCapturing,
+    frames: frameManager.frames,
+    isCapturing: frameManager.isCapturing,
     isCreatingGIF,
     gifBlob,
     progress,
     startCapture,
-    stopCapture,
-    addFrame,
+    stopCapture: frameManager.stopCapture,
+    addFrame: frameManager.addFrame,
     createGIF,
     clearFrames,
     downloadGIF

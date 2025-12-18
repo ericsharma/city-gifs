@@ -1,12 +1,8 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
+import { useFrameManager, type ExtendedFrame } from './useFrameManager'
 import { useGIFCreator } from './useGIFCreator'
 
-interface CapturedFrame {
-  blob: Blob
-  timestamp: number
-  url: string
-  selected?: boolean
-}
+type CapturedFrame = ExtendedFrame
 
 interface UseFrameCaptureOptions {
   maxFrames?: number
@@ -34,10 +30,13 @@ export const useFrameCapture = ({
   maxFrames: initialMaxFrames = 30,
   framerate = 2
 }: UseFrameCaptureOptions = {}): UseFrameCaptureReturn => {
-  const [frames, setFrames] = useState<CapturedFrame[]>([])
-  const [isCapturing, setIsCapturing] = useState(false)
   const [maxFrames, setMaxFrames] = useState(initialMaxFrames)
-  const framesRef = useRef<CapturedFrame[]>([])
+  
+  const frameManager = useFrameManager<CapturedFrame>({
+    maxFrames,
+    createBlobUrl: true,
+    defaultSelected: true
+  })
   
   const {
     isCreatingGIF,
@@ -48,93 +47,44 @@ export const useFrameCapture = ({
     clearFrames: clearGIFState
   } = useGIFCreator({ framerate, maxFrames })
 
-  // Update ref when frames change
-  framesRef.current = frames
-
   const startCapture = useCallback(() => {
-    setIsCapturing(true)
-    setFrames([])
-    framesRef.current = []
+    frameManager.startCapture()
     // Clear any existing GIF blob to prevent UI overlap
     clearGIFState()
-  }, [clearGIFState])
-
-  const stopCapture = useCallback(() => {
-    setIsCapturing(false)
-  }, [])
+  }, [frameManager.startCapture, clearGIFState])
 
   const clearFrames = useCallback(() => {
-    // Clean up blob URLs using functional setState to avoid stale closure
-    setFrames(current => {
-      current.forEach(frame => {
-        if (frame.url.startsWith('blob:')) {
-          URL.revokeObjectURL(frame.url)
-        }
-      })
-      return []
-    })
-    framesRef.current = []
-    setIsCapturing(false)
-  }, [])
+    frameManager.clearFrames()
+  }, [frameManager.clearFrames])
 
   const addFrame = useCallback((blob: Blob) => {
-    if (!isCapturing) return
-
-    const newFrame: CapturedFrame = {
-      blob,
-      timestamp: Date.now(),
-      url: URL.createObjectURL(blob),
-      selected: true // Default to selected
-    }
-
-
-    setFrames(current => {
-      const updated = [...current, newFrame]
-      framesRef.current = updated
-      
-      // Auto-stop when max frames reached
-      if (updated.length >= maxFrames) {
-        setIsCapturing(false)
-      }
-      
-      return updated
-    })
-  }, [isCapturing, maxFrames])
+    frameManager.addFrame(blob)
+  }, [frameManager.addFrame])
 
   const createGIF = useCallback(async () => {
-    const selectedFrames = frames.filter(frame => frame.selected !== false)
+    const selectedFrames = frameManager.frames.filter(frame => frame.selected !== false)
     if (selectedFrames.length < 2) {
       throw new Error('Need at least 2 selected frames to create a GIF')
     }
     
     const blobs = selectedFrames.map(frame => frame.blob)
     await createGIFFromBlobs(blobs)
-  }, [frames, createGIFFromBlobs])
-
-  const toggleFrameSelection = useCallback((index: number) => {
-    setFrames(current => 
-      current.map((frame, i) => 
-        i === index 
-          ? { ...frame, selected: frame.selected !== false ? false : true }
-          : frame
-      )
-    )
-  }, [])
+  }, [frameManager.frames, createGIFFromBlobs])
 
   return {
-    frames,
-    isCapturing,
+    frames: frameManager.frames,
+    isCapturing: frameManager.isCapturing,
     isCreatingGIF,
     gifBlob,
     progress,
     maxFrames,
     startCapture,
-    stopCapture,
+    stopCapture: frameManager.stopCapture,
     clearFrames,
     addFrame,
     createGIF,
     downloadGIF,
     setMaxFrames,
-    toggleFrameSelection
+    toggleFrameSelection: frameManager.toggleFrameSelection
   }
 }
