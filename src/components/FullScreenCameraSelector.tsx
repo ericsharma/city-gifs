@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from './ui/select';
 import { Badge } from './ui/badge';
-import { Search, ArrowRight } from 'lucide-react';
+import { Search, ArrowRight, Filter, Settings, X } from 'lucide-react';
 import { CameraMapView } from './CameraMapView';
 
 interface FullScreenCameraSelectorProps {
@@ -27,6 +27,7 @@ export function FullScreenCameraSelector({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedArea, setSelectedArea] = useState<string>('all');
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
+  const [isControlsExpanded, setIsControlsExpanded] = useState(false);
 
   const areas = Array.from(
     new Set(cameras.map((camera) => camera.area))
@@ -45,100 +46,110 @@ export function FullScreenCameraSelector({
     setSelectedCamera(camera);
   };
 
-  const handleConfirmSelection = () => {
-    if (selectedCamera) {
-      onCameraSelect(selectedCamera);
-    }
-  };
 
   return (
-    <div className='h-full bg-background flex flex-col scrollable'>
-      {/* Search and Filter Controls */}
-      <div className='sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b'>
-        <div className='p-4 sm:p-6'>
-          <div className='space-y-4'>
+    <div className='relative h-full w-full overflow-hidden'>
+      {/* Full-screen Map */}
+      <div className='absolute inset-0'>
+        <CameraMapView 
+          cameras={filteredCameras}
+          onCameraSelect={handleCameraSelection}
+          selectedCamera={selectedCamera}
+          onStartPreview={onCameraSelect}
+          isLoading={isLoading}
+        />
+      </div>
+
+      {/* Desktop: Always show controls - Bottom Right */}
+      <div className='hidden md:block absolute bottom-4 right-4 z-1001 space-y-3'>
+        {/* Search Bar */}
+        <div className='bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-3 w-80'>
+          <div className='relative'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4' />
+            <Input
+              placeholder='Search NYC cameras...'
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className='pl-9 text-sm border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-primary'
+            />
+          </div>
+        </div>
+        
+        {/* Borough Filter */}
+        <div className='bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-2'>
+          <Select value={selectedArea} onValueChange={setSelectedArea}>
+            <SelectTrigger className='border-0 bg-transparent shadow-none focus:ring-1 focus:ring-primary h-8 text-sm w-full'>
+              <div className='flex items-center gap-2'>
+                <Filter className='h-3 w-3 text-muted-foreground shrink-0' />
+                <SelectValue placeholder='Borough' />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='all'>All Boroughs</SelectItem>
+              {areas.map((area) => (
+                <SelectItem key={area} value={area}>
+                  {area}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Mobile: Expandable controls toggle - Top Right (next to location button) */}
+      <div className='md:hidden absolute top-4 right-16 z-1001'>
+        <Button
+          onClick={() => setIsControlsExpanded(!isControlsExpanded)}
+          className='bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 h-10 w-10 p-0 hover:bg-white'
+          variant='ghost'
+          title={isControlsExpanded ? 'Close search filters' : 'Open search filters'}
+        >
+          {isControlsExpanded ? (
+            <X className='h-5 w-5 text-gray-700' />
+          ) : (
+            <Settings className='h-5 w-5 text-gray-700' />
+          )}
+        </Button>
+      </div>
+
+      {/* Mobile: Expandable controls panel */}
+      {isControlsExpanded && (
+        <div className='md:hidden absolute top-16 right-16 z-1001 space-y-3 w-72 max-w-[calc(100vw-4rem)]'>
+          {/* Search Bar */}
+          <div className='bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-3'>
             <div className='relative'>
               <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4' />
               <Input
                 placeholder='Search NYC cameras...'
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className='pl-9 text-base'
+                className='pl-9 text-sm border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-primary'
               />
             </div>
-
-            <div className='flex gap-3'>
-              <div className='flex-1'>
-                <Select value={selectedArea} onValueChange={setSelectedArea}>
-                  <SelectTrigger>
-                    <SelectValue placeholder='Borough' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='all'>All Boroughs</SelectItem>
-                    {areas.map((area) => (
-                      <SelectItem key={area} value={area}>
-                        {area}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Badge variant='secondary' className='px-3 py-2 text-sm'>
-                {filteredCameras.length} available
-              </Badge>
-            </div>
           </div>
-        </div>
-      </div>
-
-      {/* Camera Map View */}
-      <div className='flex-1'>
-        <CameraMapView 
-          cameras={filteredCameras}
-          onCameraSelect={handleCameraSelection}
-          selectedCamera={selectedCamera}
-        />
-      </div>
-
-      {/* Selected Camera Preview & Action */}
-      {selectedCamera && (
-        <div className='border-t bg-background/95 backdrop-blur-sm'>
-          <div className='p-4'>
-            <div className='flex items-center justify-between gap-4 mb-4'>
-              <div className='flex-1 min-w-0'>
-                <h4 className='font-medium text-sm truncate'>
-                  {selectedCamera.name}
-                </h4>
-                <p className='text-xs text-muted-foreground'>
-                  {selectedCamera.area}
-                </p>
-              </div>
-              <Badge variant='default' className='shrink-0'>
-                Selected
-              </Badge>
-            </div>
-
-            <Button
-              onClick={handleConfirmSelection}
-              disabled={isLoading}
-              className='w-full h-12 text-base font-medium'
-              size='lg'
-            >
-              {isLoading ? (
-                <>
-                  <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2' />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  Start Live Preview
-                  <ArrowRight className='h-4 w-4 ml-2' />
-                </>
-              )}
-            </Button>
+          
+          {/* Borough Filter */}
+          <div className='bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-2'>
+            <Select value={selectedArea} onValueChange={setSelectedArea}>
+              <SelectTrigger className='border-0 bg-transparent shadow-none focus:ring-1 focus:ring-primary h-8 text-sm w-full'>
+                <div className='flex items-center gap-2'>
+                  <Filter className='h-3 w-3 text-muted-foreground shrink-0' />
+                  <SelectValue placeholder='Borough' />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='all'>All Boroughs</SelectItem>
+                {areas.map((area) => (
+                  <SelectItem key={area} value={area}>
+                    {area}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       )}
+
     </div>
   );
 }

@@ -9,6 +9,8 @@ interface CameraMapViewProps {
   cameras: Camera[]
   onCameraSelect: (camera: Camera) => void
   selectedCamera?: Camera | null
+  onStartPreview?: (camera: Camera) => void
+  isLoading?: boolean
 }
 
 // NYC center coordinates (around Manhattan)
@@ -96,7 +98,7 @@ function MapController({ userLocation }: { userLocation: { latitude: number, lon
   return null
 }
 
-export function CameraMapView({ cameras, onCameraSelect, selectedCamera }: CameraMapViewProps) {
+export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStartPreview, isLoading }: CameraMapViewProps) {
   const { latitude, longitude, error, loading, getCurrentPosition, clearError } = useGeolocation()
   const [mapCenter, setMapCenter] = useState<LatLngExpression>(NYC_CENTER)
   
@@ -194,12 +196,12 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera }: Camer
             }}
           >
             <Popup>
-              <div className="text-sm">
+              <div className="text-sm min-w-[200px]">
                 <h3 className="font-medium text-gray-900 mb-1">
                   {camera.name}
                 </h3>
                 <p className="text-gray-600 mb-2">{camera.area}</p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mb-3">
                   <div 
                     className="w-3 h-3 rounded-full"
                     style={{ 
@@ -210,6 +212,30 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera }: Camer
                     {camera.isOnline ? 'Online' : 'Offline'}
                   </span>
                 </div>
+                {onStartPreview && camera.isOnline && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onStartPreview(camera)
+                    }}
+                    disabled={isLoading}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-sm font-medium py-2 px-3 rounded transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        Start Live Preview
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 12h12" />
+                        </svg>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </Popup>
           </Marker>
