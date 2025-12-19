@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util']
+    exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
   },
   server: {
     headers: {
@@ -26,9 +26,18 @@ export default defineConfig({
         secure: true,
         rewrite: (path) => path.replace(/^\/api\/cameras/, '/api/cameras'),
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; NYC-GIF-Creator)'
-        }
-      }
-    }
-  }
+          'User-Agent': 'Mozilla/5.0 (compatible; NYC-GIF-Creator)',
+        },
+      },
+      '/tiles': {
+        target: 'https://a.basemaps.cartocdn.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/tiles/, '/rastertiles/voyager'),
+        headers: {
+          'Cross-Origin-Resource-Policy': 'cross-origin',
+        },
+      },
+    },
+  },
 });

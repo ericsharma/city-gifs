@@ -10,7 +10,8 @@ import {
   SelectValue,
 } from './ui/select';
 import { Badge } from './ui/badge';
-import { Search, MapPin, Camera as CameraIcon, ArrowRight } from 'lucide-react';
+import { Search, MapPin, Camera as CameraIcon, ArrowRight, List, Map } from 'lucide-react';
+import { CameraMapView } from './CameraMapView';
 
 interface FullScreenCameraSelectorProps {
   cameras: Camera[];
@@ -26,6 +27,7 @@ export function FullScreenCameraSelector({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedArea, setSelectedArea] = useState<string>('all');
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('map');
 
   const areas = Array.from(
     new Set(cameras.map((camera) => camera.area))
@@ -96,23 +98,54 @@ export function FullScreenCameraSelector({
                 {filteredCameras.length} available
               </Badge>
             </div>
+            
+            {/* View Toggle */}
+            <div className='flex gap-1 bg-muted p-1 rounded-lg'>
+                            <Button
+                variant={viewMode === 'map' ? 'default' : 'ghost'}
+                size='sm'
+                onClick={() => setViewMode('map')}
+                className='flex-1 text-xs'
+              >
+                <Map className='h-4 w-4 mr-1' />
+                Map
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size='sm'
+                onClick={() => setViewMode('list')}
+                className='flex-1 text-xs'
+              >
+                <List className='h-4 w-4 mr-1' />
+                List
+              </Button>
+
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Camera List */}
-      <div className='flex-1 scrollable'>
-        <div className='p-4 space-y-2'>
-          {filteredCameras.length === 0 ? (
-            <div className='flex flex-col items-center justify-center py-12 text-center'>
-              <CameraIcon className='h-16 w-16 text-muted-foreground/50 mb-4' />
-              <h3 className='text-lg font-medium mb-2'>No cameras found</h3>
-              <p className='text-muted-foreground text-sm'>
-                Try adjusting your search or filter criteria
-              </p>
-            </div>
-          ) : (
-            filteredCameras.map((camera) => (
+      {/* Camera Content - List or Map View */}
+      <div className='flex-1'>
+        {viewMode === 'map' ? (
+          <CameraMapView 
+            cameras={filteredCameras}
+            onCameraSelect={handleCameraSelection}
+            selectedCamera={selectedCamera}
+          />
+        ) : (
+          <div className='h-full scrollable'>
+            <div className='p-4 space-y-2'>
+              {filteredCameras.length === 0 ? (
+                <div className='flex flex-col items-center justify-center py-12 text-center'>
+                  <CameraIcon className='h-16 w-16 text-muted-foreground/50 mb-4' />
+                  <h3 className='text-lg font-medium mb-2'>No cameras found</h3>
+                  <p className='text-muted-foreground text-sm'>
+                    Try adjusting your search or filter criteria
+                  </p>
+                </div>
+              ) : (
+                filteredCameras.map((camera) => (
               <div
                 key={camera.id}
                 className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
@@ -144,9 +177,11 @@ export function FullScreenCameraSelector({
                   {camera.latitude.toFixed(4)}, {camera.longitude.toFixed(4)}
                 </div>
               </div>
-            ))
-          )}
-        </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Selected Camera Preview & Action */}
