@@ -1,6 +1,6 @@
 services:
   city-gifs:
-    build: .
+    image: blindjoe/city-gifs:latest
     ports:
       - '${PORT:-3000}:80'
     restart: unless-stopped
