@@ -54,19 +54,9 @@ export function FullScreenCameraSelector({
 
   return (
     <div className='h-full bg-background flex flex-col scrollable'>
-      {/* Header */}
+      {/* Search and Filter Controls */}
       <div className='sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b'>
         <div className='p-4 sm:p-6'>
-          <div className='text-center mb-6'>
-            <h1 className='text-2xl sm:text-3xl font-bold tracking-tight mb-2'>
-              NYC Camera GIFs
-            </h1>
-            <p className='text-muted-foreground text-sm sm:text-base'>
-              Choose a live camera to start creating GIFs
-            </p>
-          </div>
-
-          {/* Search and Filter */}
           <div className='space-y-4'>
             <div className='relative'>
               <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4' />
@@ -101,7 +91,7 @@ export function FullScreenCameraSelector({
             
             {/* View Toggle */}
             <div className='flex gap-1 bg-muted p-1 rounded-lg'>
-                            <Button
+              <Button
                 variant={viewMode === 'map' ? 'default' : 'ghost'}
                 size='sm'
                 onClick={() => setViewMode('map')}
@@ -119,7 +109,6 @@ export function FullScreenCameraSelector({
                 <List className='h-4 w-4 mr-1' />
                 List
               </Button>
-
             </div>
           </div>
         </div>

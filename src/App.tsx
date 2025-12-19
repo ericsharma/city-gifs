@@ -4,6 +4,7 @@ import { FullScreenCameraSelector } from './components/FullScreenCameraSelector'
 import { FullScreenLivePreview } from './components/FullScreenLivePreview'
 import { FullScreenCapturedFrames } from './components/FullScreenCapturedFrames'
 import { GIFModal } from './components/GIFModal'
+import { Header } from './components/Header'
 import { useFrameCapture } from './hooks/useFrameCapture'
 
 // Import the camera data
@@ -106,49 +107,62 @@ function App() {
   // Render current screen
   if (currentScreen === 'camera-selection') {
     return (
-      <FullScreenCameraSelector
-        cameras={allCameras}
-        onCameraSelect={handleCameraSelect}
-        isLoading={false}
-      />
+      <div className="h-full flex flex-col">
+        <Header />
+        <div className="flex-1 overflow-hidden">
+          <FullScreenCameraSelector
+            cameras={allCameras}
+            onCameraSelect={handleCameraSelect}
+            isLoading={false}
+          />
+        </div>
+      </div>
     )
   }
 
   if (currentScreen === 'live-preview' && selectedCamera) {
     return (
-      <FullScreenLivePreview
-        camera={selectedCamera}
-        pollingInterval={pollingInterval}
-        onPollingIntervalChange={setPollingInterval}
-        isPollingEnabled={isPollingEnabled}
-        onPollingEnabledChange={setIsPollingEnabled}
-        isCapturing={isCapturing}
-        onStartCapture={startCapture}
-        onStopCapture={stopCapture}
-        frameCount={frames.length}
-        maxFrames={maxFrames}
-        onMaxFramesChange={setMaxFrames}
-        onImageUpdate={handleImageUpdate}
-        onBackToCamera={handleBackToCamera}
-        onViewFrames={handleViewFrames}
-      />
+      <div className="h-full flex flex-col">
+        <Header />
+        <div className="flex-1 overflow-hidden">
+          <FullScreenLivePreview
+            camera={selectedCamera}
+            pollingInterval={pollingInterval}
+            onPollingIntervalChange={setPollingInterval}
+            isPollingEnabled={isPollingEnabled}
+            onPollingEnabledChange={setIsPollingEnabled}
+            isCapturing={isCapturing}
+            onStartCapture={startCapture}
+            onStopCapture={stopCapture}
+            frameCount={frames.length}
+            maxFrames={maxFrames}
+            onMaxFramesChange={setMaxFrames}
+            onImageUpdate={handleImageUpdate}
+            onBackToCamera={handleBackToCamera}
+            onViewFrames={handleViewFrames}
+          />
+        </div>
+      </div>
     )
   }
 
   if (currentScreen === 'captured-frames' && selectedCamera) {
     return (
-      <div>
-        <FullScreenCapturedFrames
-          frames={frames}
-          camera={selectedCamera}
-          onBackToPreview={handleBackToPreview}
-          onClearFrames={clearFrames}
-          onCreateGIF={handleCreateGIF}
-          onFrameSelectionToggle={toggleFrameSelection}
-          isCreatingGIF={isCreatingGIF}
-          captureProgress={progress}
-          gifBlob={gifBlob}
-        />
+      <div className="h-full flex flex-col">
+        <Header />
+        <div className="flex-1 overflow-hidden">
+          <FullScreenCapturedFrames
+            frames={frames}
+            camera={selectedCamera}
+            onBackToPreview={handleBackToPreview}
+            onClearFrames={clearFrames}
+            onCreateGIF={handleCreateGIF}
+            onFrameSelectionToggle={toggleFrameSelection}
+            isCreatingGIF={isCreatingGIF}
+            captureProgress={progress}
+            gifBlob={gifBlob}
+          />
+        </div>
         
         {/* GIF Modal */}
         <GIFModal
@@ -166,11 +180,16 @@ function App() {
 
   // Fallback - shouldn't happen but return to camera selection
   return (
-    <FullScreenCameraSelector
-      cameras={allCameras}
-      onCameraSelect={handleCameraSelect}
-      isLoading={false}
-    />
+    <div className="h-full flex flex-col">
+      <Header />
+      <div className="flex-1 overflow-hidden">
+        <FullScreenCameraSelector
+          cameras={allCameras}
+          onCameraSelect={handleCameraSelect}
+          isLoading={false}
+        />
+      </div>
+    </div>
   )
 }
 

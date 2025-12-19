@@ -110,6 +110,28 @@
   --sidebar-ring: oklch(0.552 0.016 285.938);
 }
 
+
+@keyframes signal-modulate {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.85); }
+}
+
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-signal-modulate {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: signal-modulate 2s infinite ease-in-out;
+}
+
+.animate-pulse-red {
+  animation: pulse-red 2s infinite;
+  fill: #FF4500;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
