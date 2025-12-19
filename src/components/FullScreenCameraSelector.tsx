@@ -9,8 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { Badge } from './ui/badge';
-import { Search, ArrowRight, Filter, Settings, X } from 'lucide-react';
+
+import { Search, Filter, Settings, X } from 'lucide-react';
 import { CameraMapView } from './CameraMapView';
 
 interface FullScreenCameraSelectorProps {
