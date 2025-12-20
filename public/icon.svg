@@ -1,0 +1,7 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" rx="40" fill="#1A1A1A"/>
+  <path d="M32,96 C32,96 64,48 96,48 C128,48 160,96 160,96 C160,96 128,144 96,144 C64,144 32,96 32,96Z" stroke="#FFFFFF" stroke-width="8"/>
+  <text x="50%" y="53%" dominant-baseline="middle" text-anchor="middle" font-family="'Arial Black', Gadget, sans-serif" font-size="40" fill="#FFFFFF">
+      GIF
+  </text>
+</svg>
