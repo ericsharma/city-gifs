@@ -1,10 +1,34 @@
-node_modules
-npm-debug.log
+# Demo files for README only
+public/demo.GIF
+
+# Development files
+README.md
+CHANGELOG.md
 .git
 .gitignore
-README.md
-.env
+*.md
+
+# Development dependencies and caches
+node_modules
+npm-debug.log
+.pnpm-debug.log*
+.pnpm-store
 .nyc_output
 coverage
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Build artifacts (excluded since we copy from builder stage)
 dist
+
+# Docker files themselves
+docker-compose.yml
+.dockerignore
