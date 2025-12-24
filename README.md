@@ -1,6 +1,6 @@
-# City-Gifs: A Browser-Based GIF Creator for NYC
+# Liberty Gifs: A Browser-Based GIF Creator for NYC
 
-[![City-Gifs Demo](./public/demo.GIF)](https://city-gifs.ericsharma.xyz/)
+[![Liberty-Gifs Demo](./public/demo.GIF)](https://city-gifs.ericsharma.xyz/)
 
 An installable, open-source tool that captures real-time images from NYC's public cameras and transforms them into shareable GIFs.
 
