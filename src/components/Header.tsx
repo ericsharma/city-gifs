@@ -38,7 +38,7 @@ export function Header({ className = '' }: HeaderProps) {
         </div>
         <div className="flex flex-col">
           <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-foreground leading-tight">
-            City Gifs
+            Liberty Gifs
           </h1>
           <p 
             className="text-xs md:text-sm text-muted-foreground leading-tight hidden sm:block"

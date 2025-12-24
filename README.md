@@ -2,7 +2,7 @@
 
 [![City-Gifs Demo](./public/demo.gif)](https://city-gifs.ericsharma.xyz/)
 
-An installable, open-source tool that captures real-time images from NYC's public cameras and transforms them into shareable GIFs, all within the browser.
+An installable, open-source tool that captures real-time images from NYC's public cameras and transforms them into shareable GIFs.
 
 ## ✨ Key Features
 
@@ -23,20 +23,33 @@ City-Gifs operates on a local-first principle, using modern web technologies to 
 
 ## 🐳 Running with Docker
 
-The easiest way to run City-Gifs is with Docker.
+The easiest way to run City-Gifs is with Docker. The image is built with security hardening following Docker best practices.
 
-### Option 1: Use the Pre-built Image from Docker Hub
+### Security Features
+- **Non-root execution**: Runs as nginx user (UID 101)
+- **Read-only filesystem**: Container filesystem is immutable
+- **Minimal privileges**: All capabilities dropped, no privilege escalation
+- **Resource limits**: Bounded memory (512MB), CPU (1 core), and process limits
+- **Secure tmpfs**: Temporary directories with noexec, nosuid, nodev flags
 
-Pull the image and run the container:
+### Option 1: Use the Pre-built Image
+
+Pull and run the hardened container:
 ```bash
 docker pull blindjoe/city-gifs:latest
-docker run -d -p 3000:80 blindjoe/city-gifs:latest
+docker run -d -p 3000:80 \
+  --read-only \
+  --user 101:101 \
+  --security-opt no-new-privileges:true \
+  --cap-drop ALL \
+  --memory 512m \
+  --cpus 1 \
+  blindjoe/city-gifs:latest
 ```
-The application will be available at `http://localhost:3000`.
 
-### Option 2: Use Docker Compose
+### Option 2: Use Docker Compose (Recommended)
 
-The `docker-compose.yml` provides a simple way to manage the container.
+The `docker-compose.yml` includes comprehensive security hardening and is the recommended deployment method.
 
 1.  **Run the container:**
     ```bash
@@ -44,12 +57,15 @@ The `docker-compose.yml` provides a simple way to manage the container.
     ```
 
 2.  **Environment Variables:**
-    You can create a `.env` file in the project root to customize the port:
-    ```
+    Create a `.env` file to customize the port:
+    ```env
     # .env
     PORT=8080
     ```
-    The application will then be available at `http://localhost:8080`.
+    The application will be available at `http://localhost:8080`.
+
+3.  **Multi-platform Support:**
+    The image supports both AMD64 and ARM64 architectures (Intel/AMD and Apple M series).
 
 ## 🚀 Local Development
 
