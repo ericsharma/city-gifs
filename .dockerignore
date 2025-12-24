@@ -7,3 +7,4 @@ README.md
 .nyc_output
 coverage
 .DS_Store
+dist

@@ -4,3 +4,24 @@ services:
     ports:
       - '${PORT:-3000}:80'
     restart: unless-stopped
+    user: "101:101"
+    tty: false
+    stdin_open: false
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=512m,uid=101,gid=101
+      - /var/cache/nginx:rw,noexec,nosuid,nodev,size=100m,uid=101,gid=101
+      - /var/run:rw,noexec,nosuid,nodev,size=100m,uid=101,gid=101
+      - /var/log/nginx:rw,noexec,nosuid,nodev,size=100m,uid=101,gid=101
+    pids_limit: 512
+    mem_limit: 512m
+    cpus: 1
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
