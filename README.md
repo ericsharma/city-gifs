@@ -1,6 +1,6 @@
 # City-Gifs: A Browser-Based GIF Creator for NYC
 
-[![City-Gifs Demo](./public/city-gif-demo.gif)](https://city-gifs.ericsharma.xyz/)
+[![City-Gifs Demo](./public/demo.gif)](https://city-gifs.ericsharma.xyz/)
 
 An installable, open-source tool that captures real-time images from NYC's public cameras and transforms them into shareable GIFs, all within the browser.
 
