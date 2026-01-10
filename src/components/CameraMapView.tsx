@@ -140,11 +140,21 @@ function CameraMarkersLayer({
     map.on('mouseleave', layerId, handleMouseLeave)
 
     return () => {
-      map.off('click', layerId, handleClick)
-      map.off('mouseenter', layerId, handleMouseEnter)
-      map.off('mouseleave', layerId, handleMouseLeave)
-      if (map.getLayer(layerId)) map.removeLayer(layerId)
-      if (map.getSource(sourceId)) map.removeSource(sourceId)
+      if (!map) return
+      try {
+        map.off('click', layerId, handleClick)
+        map.off('mouseenter', layerId, handleMouseEnter)
+        map.off('mouseleave', layerId, handleMouseLeave)
+        if (map.getLayer(layerId)) map.removeLayer(layerId)
+        if (map.getSource(sourceId)) map.removeSource(sourceId)
+      } catch (e) {
+        // If a camera is selected, suppress cleanup errors (common during transitions)
+        // Otherwise rethrow to expose potential bugs
+        if (!selectedCamera) {
+            console.error('Map cleanup error:', e)
+            throw e
+        }
+      }
     }
   }, [map, isLoaded, sourceId, layerId, geoJSONData, cameras, onCameraSelect, selectedCamera])
 
