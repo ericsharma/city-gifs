@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
-import { type LatLngExpression, Icon, DivIcon } from 'leaflet'
+import { useEffect, useState, useId } from 'react'
 import type { Camera } from '../types/Camera'
 import { useGeolocation } from '../hooks/useGeolocation'
-import 'leaflet/dist/leaflet.css'
+import { Map, MapMarker, MarkerContent, MarkerPopup, MapPopup, MapControls, useMap } from '@/components/ui/map'
+import { Button } from '@/components/ui/button'
+import { RotateCcw, Mountain } from 'lucide-react'
+import type MapLibreGL from 'maplibre-gl'
 
 interface CameraMapViewProps {
   cameras: Camera[]
@@ -14,7 +15,7 @@ interface CameraMapViewProps {
 }
 
 // NYC center coordinates (around Manhattan)
-const NYC_CENTER: LatLngExpression = [40.7589, -73.9851]
+const NYC_CENTER: [number, number] = [-73.9851, 40.7589]
 
 // Borough color mapping for visual distinction
 const BOROUGH_COLORS = {
@@ -25,108 +26,250 @@ const BOROUGH_COLORS = {
   'Staten Island': '#8b5cf6', // violet
 } as const
 
-// Create custom markers for different boroughs and states
-const createCameraMarker = (camera: Camera, isSelected: boolean) => {
-  const color = BOROUGH_COLORS[camera.area as keyof typeof BOROUGH_COLORS] || '#6b7280'
-  const size = isSelected ? 16 : 12
-  const opacity = camera.isOnline ? 1 : 0.5
-  
-  return new DivIcon({
-    html: `
-      <div style="
-        width: ${size}px;
-        height: ${size}px;
-        background-color: ${color};
-        border: 2px solid white;
-        border-radius: 50%;
-        opacity: ${opacity};
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        ${isSelected ? 'transform: scale(1.2);' : ''}
-        cursor: pointer;
-      "></div>
-    `,
-    className: 'camera-marker',
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  })
+// Convert cameras to GeoJSON format
+function camerasToGeoJSON(cameras: Camera[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
+  return {
+    type: 'FeatureCollection',
+    features: cameras
+      .filter(c => c.isOnline)
+      .map(camera => ({
+        type: 'Feature' as const,
+        properties: {
+          id: camera.id,
+          name: camera.name,
+          area: camera.area,
+          isOnline: camera.isOnline,
+          imageUrl: camera.imageUrl,
+        },
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [camera.longitude, camera.latitude],
+        },
+      })),
+  }
 }
 
-// Create user location marker
-const createUserLocationMarker = () => {
-  return new DivIcon({
-    html: `
-      <div style="
-        width: 20px;
-        height: 20px;
-        background-color: #3b82f6;
-        border: 3px solid white;
-        border-radius: 50%;
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
-        position: relative;
-      ">
-        <div style="
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 8px;
-          height: 8px;
-          background-color: white;
-          border-radius: 50%;
-        "></div>
-      </div>
-    `,
-    className: 'user-location-marker',
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-  })
-}
+// Camera markers layer component using GeoJSON for performance
+function CameraMarkersLayer({
+  cameras,
+  onCameraSelect,
+  selectedCamera
+}: {
+  cameras: Camera[]
+  onCameraSelect: (camera: Camera) => void
+  selectedCamera?: Camera | null
+}) {
+  const { map, isLoaded } = useMap()
+  const id = useId()
+  const sourceId = `cameras-source-${id}`
+  const layerId = `cameras-layer-${id}`
+  const [localSelectedCamera, setLocalSelectedCamera] = useState<Camera | null>(null)
 
-// Component to handle map updates
-function MapController({ userLocation }: { userLocation: { latitude: number, longitude: number } | null }) {
-  const map = useMap()
-  
+  // Update local selected camera when prop changes
   useEffect(() => {
-    if (userLocation) {
-      map.setView([userLocation.latitude, userLocation.longitude], 13, {
-        animate: true,
-        duration: 1
+    setLocalSelectedCamera(selectedCamera || null)
+  }, [selectedCamera])
+
+  // Add GeoJSON source and layer
+  useEffect(() => {
+    if (!map || !isLoaded) return
+
+    const geoJSONData = camerasToGeoJSON(cameras)
+
+    map.addSource(sourceId, {
+      type: 'geojson',
+      data: geoJSONData,
+    })
+
+    map.addLayer({
+      id: layerId,
+      type: 'circle',
+      source: sourceId,
+      paint: {
+        'circle-radius': [
+          'case',
+          ['==', ['get', 'id'], selectedCamera?.id || ''],
+          8, // larger for selected
+          6  // normal size
+        ],
+        'circle-color': [
+          'match',
+          ['get', 'area'],
+          'Manhattan', BOROUGH_COLORS.Manhattan,
+          'Brooklyn', BOROUGH_COLORS.Brooklyn,
+          'Queens', BOROUGH_COLORS.Queens,
+          'Bronx', BOROUGH_COLORS.Bronx,
+          'Staten Island', BOROUGH_COLORS['Staten Island'],
+          '#6b7280' // fallback
+        ],
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff',
+        'circle-opacity': 1,
+      },
+    })
+
+    const handleClick = (
+      e: MapLibreGL.MapMouseEvent & {
+        features?: MapLibreGL.MapGeoJSONFeature[]
+      }
+    ) => {
+      if (!e.features?.length) return
+
+      const feature = e.features[0]
+      const cameraId = feature.properties?.id
+      const camera = cameras.find(c => c.id === cameraId)
+
+      if (camera) {
+        onCameraSelect(camera)
+        setLocalSelectedCamera(camera)
+      }
+    }
+
+    const handleMouseEnter = () => {
+      map.getCanvas().style.cursor = 'pointer'
+    }
+
+    const handleMouseLeave = () => {
+      map.getCanvas().style.cursor = ''
+    }
+
+    map.on('click', layerId, handleClick)
+    map.on('mouseenter', layerId, handleMouseEnter)
+    map.on('mouseleave', layerId, handleMouseLeave)
+
+    return () => {
+      map.off('click', layerId, handleClick)
+      map.off('mouseenter', layerId, handleMouseEnter)
+      map.off('mouseleave', layerId, handleMouseLeave)
+
+      try {
+        if (map.getLayer(layerId)) map.removeLayer(layerId)
+        if (map.getSource(sourceId)) map.removeSource(sourceId)
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+  }, [map, isLoaded, sourceId, layerId, cameras, onCameraSelect, selectedCamera])
+
+  // Update layer when selected camera changes
+  useEffect(() => {
+    if (!map || !isLoaded || !map.getLayer(layerId)) return
+
+    map.setPaintProperty(layerId, 'circle-radius', [
+      'case',
+      ['==', ['get', 'id'], selectedCamera?.id || ''],
+      8,
+      6
+    ])
+  }, [map, isLoaded, layerId, selectedCamera])
+
+  return null
+}
+
+// Map controller for centering on user location
+function MapCenterController({ userLocation }: { userLocation: { latitude: number, longitude: number } | null }) {
+  const { map } = useMap()
+
+  useEffect(() => {
+    if (userLocation && map) {
+      map.flyTo({
+        center: [userLocation.longitude, userLocation.latitude],
+        zoom: 13,
+        duration: 1000
       })
     }
   }, [map, userLocation])
-  
+
   return null
+}
+
+// Map pitch and bearing controls (must be inside Map component)
+function MapPitchBearingControls() {
+  const { map, isLoaded } = useMap()
+  const [pitch, setPitch] = useState(0)
+  const [bearing, setBearing] = useState(0)
+
+  useEffect(() => {
+    if (!map || !isLoaded) return
+
+    const handleMove = () => {
+      setPitch(Math.round(map.getPitch()))
+      setBearing(Math.round(map.getBearing()))
+    }
+
+    map.on('move', handleMove)
+    return () => {
+      map.off('move', handleMove)
+    }
+  }, [map, isLoaded])
+
+  const handle3DView = () => {
+    map?.easeTo({
+      pitch: 60,
+      bearing: -20,
+      duration: 1000,
+    })
+  }
+
+  const handleReset = () => {
+    map?.easeTo({
+      pitch: 0,
+      bearing: 0,
+      duration: 1000,
+    })
+  }
+
+  if (!isLoaded) return null
+
+  return (
+    <div className="absolute top-3 left-3 z-[1000] flex flex-col gap-2">
+      <div className="flex gap-2">
+        <Button size="sm" variant="secondary" onClick={handle3DView}>
+          <Mountain className="size-4 mr-1.5" />
+          3D View
+        </Button>
+        <Button size="sm" variant="secondary" onClick={handleReset}>
+          <RotateCcw className="size-4 mr-1.5" />
+          Reset
+        </Button>
+      </div>
+      <div className="rounded-md bg-background/90 backdrop-blur px-3 py-2 text-xs font-mono border">
+        <div>Pitch: {pitch}°</div>
+        <div>Bearing: {bearing}°</div>
+      </div>
+    </div>
+  )
 }
 
 export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStartPreview, isLoading }: CameraMapViewProps) {
   const { latitude, longitude, error, loading, getCurrentPosition, clearError } = useGeolocation()
-  const [mapCenter, setMapCenter] = useState<LatLngExpression>(NYC_CENTER)
-  
-  // Fix Leaflet default marker icons in React
-  useEffect(() => {
-    // Delete default icon to prevent console errors
-    delete (Icon.Default.prototype as any)._getIconUrl
-  }, [])
+  const [internalSelectedCamera, setInternalSelectedCamera] = useState<Camera | null>(null)
 
-  // Update map center when user location is found
-  useEffect(() => {
-    if (latitude && longitude) {
-      setMapCenter([latitude, longitude])
+  // Keep track of which camera is selected (either from prop or internal)
+  const activeSelectedCamera = selectedCamera !== undefined ? selectedCamera : internalSelectedCamera
+
+  const handleCameraSelect = (camera: Camera) => {
+    setInternalSelectedCamera(camera)
+    onCameraSelect(camera)
+  }
+
+  const handleClosePopup = () => {
+    setInternalSelectedCamera(null)
+    // If parent is controlling selection, notify them
+    if (selectedCamera !== undefined) {
+      onCameraSelect(null as unknown as Camera) // This might need adjustment based on parent component expectations
     }
-  }, [latitude, longitude])
+  }
 
-  // Filter to only online cameras for cleaner map
-  const onlineCameras = cameras.filter(camera => camera.isOnline)
-  
   const userLocation = latitude && longitude ? { latitude, longitude } : null
 
   return (
     <div className="h-full w-full relative">
-      {/* Locate button */}
+      {/* Custom locate button that uses our geolocation hook */}
       <button
         onClick={getCurrentPosition}
         disabled={loading}
-        className="absolute top-4 right-4 z-1000 bg-white hover:bg-gray-50 disabled:bg-gray-100 shadow-lg rounded-lg p-3 transition-colors border border-gray-200"
+        className="absolute top-4 right-4 z-[1000] bg-white hover:bg-gray-50 disabled:bg-gray-100 shadow-lg rounded-lg p-3 transition-colors border border-gray-200"
         title="Find my location"
       >
         {loading ? (
@@ -141,7 +284,7 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
 
       {/* Error notification */}
       {error && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-1000 bg-red-50 border border-red-200 text-red-800 px-4 py-2 rounded-lg shadow-lg max-w-sm">
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 text-red-800 px-4 py-2 rounded-lg shadow-lg max-w-sm">
           <div className="flex items-center justify-between">
             <span className="text-sm">{error}</span>
             <button onClick={clearError} className="ml-2 text-red-600 hover:text-red-800">
@@ -153,102 +296,106 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
         </div>
       )}
 
-      <MapContainer
-        center={mapCenter}
-        zoom={11}
-        scrollWheelZoom={true}
-        className="h-full w-full"
-        zoomControl={true}
-      >
-        <MapController userLocation={userLocation} />
-        
-        {/* Map tiles - Proxied through Vite to handle COEP */}
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="/tiles/{z}/{x}/{y}.png"
+      <Map center={NYC_CENTER} zoom={11}>
+        <MapCenterController userLocation={userLocation} />
+        <MapPitchBearingControls />
+
+        {/* Camera markers layer */}
+        <CameraMarkersLayer
+          cameras={cameras}
+          onCameraSelect={handleCameraSelect}
+          selectedCamera={activeSelectedCamera}
         />
-        
+
         {/* User location marker */}
         {userLocation && (
-          <Marker
-            position={[userLocation.latitude, userLocation.longitude]}
-            icon={createUserLocationMarker()}
+          <MapMarker
+            longitude={userLocation.longitude}
+            latitude={userLocation.latitude}
           >
-            <Popup>
+            <MarkerContent>
+              <div className="relative h-5 w-5 rounded-full border-3 border-white bg-blue-500 shadow-lg">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full" />
+              </div>
+            </MarkerContent>
+            <MarkerPopup>
               <div className="text-sm">
                 <h3 className="font-medium text-blue-600 mb-1">Your Location</h3>
                 <p className="text-gray-600 text-xs">
                   {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
                 </p>
               </div>
-            </Popup>
-          </Marker>
+            </MarkerPopup>
+          </MapMarker>
         )}
-        
-        {/* Camera markers */}
-        {onlineCameras.map((camera) => (
-          <Marker
-            key={camera.id}
-            position={[camera.latitude, camera.longitude]}
-            icon={createCameraMarker(camera, selectedCamera?.id === camera.id)}
-            eventHandlers={{
-              click: () => onCameraSelect(camera)
-            }}
+
+        {/* Selected camera popup */}
+        {activeSelectedCamera && (
+          <MapPopup
+            longitude={activeSelectedCamera.longitude}
+            latitude={activeSelectedCamera.latitude}
+            onClose={handleClosePopup}
+            closeButton={false}
           >
-            <Popup>
-              <div className="text-sm min-w-[200px]">
-                <h3 className="font-medium text-gray-900 mb-1">
-                  {camera.name}
-                </h3>
-                <p className="text-gray-600 mb-2">{camera.area}</p>
-                <div className="flex items-center gap-2 mb-3">
-                  <div 
-                    className="w-3 h-3 rounded-full"
-                    style={{ 
-                      backgroundColor: BOROUGH_COLORS[camera.area as keyof typeof BOROUGH_COLORS] || '#6b7280' 
-                    }}
-                  />
-                  <span className="text-xs text-gray-500">
-                    {camera.isOnline ? 'Online' : 'Offline'}
-                  </span>
-                </div>
-                {onStartPreview && camera.isOnline && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onStartPreview(camera)
-                    }}
-                    disabled={isLoading}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-sm font-medium py-2 px-3 rounded transition-colors flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        Start Live Preview
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 12h12" />
-                        </svg>
-                      </>
-                    )}
-                  </button>
-                )}
+            <div className="text-sm min-w-[200px]">
+              <h3 className="font-medium text-gray-900 mb-1">
+                {activeSelectedCamera.name}
+              </h3>
+              <p className="text-gray-600 mb-2">{activeSelectedCamera.area}</p>
+              <div className="flex items-center gap-2 mb-3">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{
+                    backgroundColor: BOROUGH_COLORS[activeSelectedCamera.area as keyof typeof BOROUGH_COLORS] || '#6b7280'
+                  }}
+                />
+                <span className="text-xs text-gray-500">
+                  {activeSelectedCamera.isOnline ? 'Online' : 'Offline'}
+                </span>
               </div>
-            </Popup>
-          </Marker>
-        ))}
-      </MapContainer>
-      
+              {onStartPreview && activeSelectedCamera.isOnline && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onStartPreview(activeSelectedCamera)
+                  }}
+                  disabled={isLoading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-sm font-medium py-2 px-3 rounded transition-colors flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      Start Live Preview
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5M6 12h12" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </MapPopup>
+        )}
+
+        {/* Map controls - only show zoom, not locate (we have custom locate button) */}
+        <MapControls
+          position="bottom-right"
+          showZoom={true}
+          showLocate={false}
+        />
+      </Map>
+
       {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg z-1000">
+      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg z-[1000]">
         <h4 className="text-sm font-medium mb-2">Boroughs</h4>
         <div className="space-y-1">
           {Object.entries(BOROUGH_COLORS).map(([borough, color]) => (
             <div key={borough} className="flex items-center gap-2">
-              <div 
+              <div
                 className="w-3 h-3 rounded-full border border-white shadow-sm"
                 style={{ backgroundColor: color }}
               />

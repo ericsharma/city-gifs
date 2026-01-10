@@ -51,7 +51,7 @@ export function FullScreenCameraSelector({
     <div className='relative h-full w-full overflow-hidden'>
       {/* Full-screen Map */}
       <div className='absolute inset-0'>
-        <CameraMapView 
+        <CameraMapView
           cameras={filteredCameras}
           onCameraSelect={handleCameraSelection}
           selectedCamera={selectedCamera}
@@ -74,7 +74,7 @@ export function FullScreenCameraSelector({
             />
           </div>
         </div>
-        
+
         {/* Borough Filter */}
         <div className='bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-2'>
           <Select value={selectedArea} onValueChange={setSelectedArea}>
@@ -127,7 +127,7 @@ export function FullScreenCameraSelector({
               />
             </div>
           </div>
-          
+
           {/* Borough Filter */}
           <div className='bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-2'>
             <Select value={selectedArea} onValueChange={setSelectedArea}>

@@ -110,7 +110,6 @@
   --sidebar-ring: oklch(0.552 0.016 285.938);
 }
 
-
 @keyframes signal-modulate {
   0%, 100% { transform: scaleY(1); }
   50% { transform: scaleY(0.85); }
@@ -136,7 +135,7 @@
   * {
     @apply border-border outline-ring/50;
   }
-  
+
   html, body {
     @apply bg-background text-foreground;
     margin: 0;
@@ -154,31 +153,31 @@
     /* Prevent zoom on inputs on iOS */
     font-size: 16px;
   }
-  
+
   /* Allow text selection in input areas */
   input, textarea {
     -webkit-user-select: text;
     user-select: text;
   }
-  
+
   /* Improve touch targets for mobile */
   button, .touch-target {
     min-height: 44px;
     min-width: 44px;
   }
-  
+
   /* Prevent rubber band scrolling on iOS */
   body {
     position: fixed;
     overflow: hidden;
   }
-  
+
   /* But allow scrolling within app containers */
   .scrollable {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   /* Ensure full viewport usage */
   #root {
     height: 100vh;
@@ -186,5 +185,11 @@
     width: 100vw;
     position: relative;
     overflow: hidden;
+  }
+  .maplibregl-popup-content {
+    @apply bg-transparent! shadow-none! p-0! rounded-none!;
+  }
+  .maplibregl-popup-tip {
+    @apply hidden!;
   }
 }
