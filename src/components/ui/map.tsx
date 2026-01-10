@@ -516,6 +516,8 @@ function MarkerLabel({
 }
 
 type MapControlsProps = {
+  /** Optional unique identifier for the controls container */
+  id?: string;
   /** Position of the controls on the map (default: "bottom-right") */
   position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   /** Show zoom in/out buttons (default: true) */
@@ -577,6 +579,7 @@ function ControlButton({
 }
 
 function MapControls({
+  id,
   position = "bottom-right",
   showZoom = true,
   showCompass = false,
@@ -641,6 +644,7 @@ function MapControls({
 
   return (
     <div
+      id={id}
       className={cn(
         "absolute z-10 flex flex-col gap-1.5",
         positionClasses[position],
