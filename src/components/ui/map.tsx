@@ -530,6 +530,8 @@ type MapControlsProps = {
   className?: string;
   /** Callback with user coordinates when located */
   onLocate?: (coords: { longitude: number; latitude: number }) => void;
+  /** Callback when compass is clicked */
+  onCompassClick?: () => void;
 };
 
 const positionClasses = {
@@ -582,6 +584,7 @@ function MapControls({
   showFullscreen = false,
   className,
   onLocate,
+  onCompassClick,
 }: MapControlsProps) {
   const { map, isLoaded } = useMap();
   const [waitingForLocation, setWaitingForLocation] = useState(false);
@@ -596,7 +599,8 @@ function MapControls({
 
   const handleResetBearing = useCallback(() => {
     map?.resetNorthPitch({ duration: 300 });
-  }, [map]);
+    onCompassClick?.();
+  }, [map, onCompassClick]);
 
   const handleLocate = useCallback(() => {
     setWaitingForLocation(true);

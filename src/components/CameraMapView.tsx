@@ -1,5 +1,6 @@
 import { useEffect, useState, useId, useCallback } from 'react'
 import type { Camera } from '../types/Camera'
+import { useGeolocation } from '../hooks/useGeolocation'
 import { Map, MapMarker, MarkerContent, MarkerPopup, MapPopup, MapControls, useMap } from '@/components/ui/map'
 import { Button } from '@/components/ui/button'
 import { RotateCcw, Mountain, Layers, X } from 'lucide-react'
@@ -325,31 +326,17 @@ function BoroughBoundariesLayer({ visibleBoroughs }: { visibleBoroughs: string[]
 // Map pitch and bearing controls (must be inside Map component)
 function MapPitchBearingControls({
   visibleBoroughs,
-  onToggleBorough
+  onToggleBorough,
+  is3DMode,
+  onToggle3DMode
 }: {
   visibleBoroughs: string[]
   onToggleBorough: (borough: string) => void
+  is3DMode: boolean
+  onToggle3DMode: () => void
 }) {
   const { map, isLoaded } = useMap()
   const [isBoroughLayerVisible, setIsBoroughLayerVisible] = useState(false)
-  const [is3DMode, setIs3DMode] = useState(false)
-
-  const toggle3DView = () => {
-    if (is3DMode) {
-      map?.easeTo({
-        pitch: 0,
-        bearing: 0,
-        duration: 1000,
-      })
-    } else {
-      map?.easeTo({
-        pitch: 60,
-        bearing: -20,
-        duration: 1000,
-      })
-    }
-    setIs3DMode(!is3DMode)
-  }
 
   const toggleBoroughBoundaries = () => {
     if (!map) return
@@ -372,7 +359,7 @@ function MapPitchBearingControls({
         <Button
           size="sm"
           variant={is3DMode ? "default" : "secondary"}
-          onClick={toggle3DView}
+          onClick={onToggle3DMode}
         >
           <Mountain className="size-4 mr-1.5" />
           3D View
@@ -420,6 +407,7 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
   const [internalSelectedCamera, setInternalSelectedCamera] = useState<Camera | null>(null)
   const [visibleBoroughs, setVisibleBoroughs] = useState<string[]>(Object.keys(BOROUGH_COLORS))
   const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null)
+  const [is3DMode, setIs3DMode] = useState(false)
 
   // Keep track of which camera is selected (either from prop or internal)
   const activeSelectedCamera = selectedCamera !== undefined ? selectedCamera : internalSelectedCamera
@@ -454,7 +442,10 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
         <MapPitchBearingControls
           visibleBoroughs={visibleBoroughs}
           onToggleBorough={toggleBorough}
+          is3DMode={is3DMode}
+          onToggle3DMode={() => setIs3DMode(!is3DMode)}
         />
+        <Map3DController is3DMode={is3DMode} />
         <BoroughBoundariesLayer visibleBoroughs={visibleBoroughs} />
 
         {/* Camera markers layer */}
@@ -531,9 +522,36 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
           position="bottom-right"
           showZoom
           showLocate
+          showCompass
           onLocate={(coords) => setUserLocation(coords)}
+          onCompassClick={() => setIs3DMode(false)}
         />
       </Map>
     </div>
   )
+}
+
+// Controller to handle 3D mode changes from state
+function Map3DController({ is3DMode }: { is3DMode: boolean }) {
+  const { map } = useMap()
+  
+  useEffect(() => {
+    if (!map) return
+    
+    if (is3DMode) {
+      map.easeTo({
+        pitch: 60,
+        bearing: -20,
+        duration: 1000,
+      })
+    } else {
+      map.easeTo({
+        pitch: 0,
+        bearing: 0,
+        duration: 1000,
+      })
+    }
+  }, [map, is3DMode])
+  
+  return null
 }
