@@ -48,14 +48,13 @@ export function FullScreenCameraSelector({
       </div>
 
       {/* Top Right Search Toggle */}
-      <div id="tour-search-wrapper" className={`absolute top-4 right-4 z-1001 flex items-center justify-end transition-all duration-300 ease-in-out ${isSearchOpen ? 'w-[calc(100vw-6rem)] md:w-80' : 'w-10'}`}>
+      <div id="tour-search-wrapper" className={`absolute top-4 right-4 z-1001 flex items-center justify-end ${isSearchOpen ? 'w-[calc(100vw-6rem)] md:w-80' : 'w-10'}`}>
         <div className={`flex items-center bg-background/95 backdrop-blur-md rounded-lg shadow-lg border border-border/50 overflow-hidden ${isSearchOpen ? 'w-full p-1' : 'w-10 h-10 justify-center'}`}>
           {isSearchOpen ? (
             <>
               <Search className="h-4 w-4 text-muted-foreground ml-2 shrink-0" />
               <Input
                 id="tour-search-input"
-                autoFocus
                 placeholder='Search cameras...'
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
