@@ -1,10 +1,11 @@
-import { useEffect, useState, useId } from 'react'
+import { useEffect, useState, useId, useCallback } from 'react'
 import type { Camera } from '../types/Camera'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { Map, MapMarker, MarkerContent, MarkerPopup, MapPopup, MapControls, useMap } from '@/components/ui/map'
 import { Button } from '@/components/ui/button'
-import { RotateCcw, Mountain } from 'lucide-react'
+import { RotateCcw, Mountain, Layers, X } from 'lucide-react'
 import type MapLibreGL from 'maplibre-gl'
+import { boroughBoundaries } from '../data/boroughsGeoJSON'
 
 interface CameraMapViewProps {
   cameras: Camera[]
@@ -19,6 +20,17 @@ const NYC_CENTER: [number, number] = [-73.9851, 40.7589]
 
 // Single marker color for all cameras
 const MARKER_COLOR = '#3b82f6' // blue
+
+// Borough colors for boundary visualization
+const BOROUGH_COLORS = {
+  'Manhattan': '#ef4444',
+  'Brooklyn': '#3b82f6',
+  'Queens': '#22c55e',
+  'Bronx': '#f59e0b',
+  'Staten Island': '#8b5cf6',
+} as const
+
+
 
 // Convert cameras to GeoJSON format
 function camerasToGeoJSON(cameras: Camera[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
@@ -168,11 +180,139 @@ function MapCenterController({ userLocation }: { userLocation: { latitude: numbe
   return null
 }
 
+// Borough boundaries layer with fill and outline styles
+function BoroughBoundariesLayer() {
+  const { map, isLoaded } = useMap()
+  const [isLayerVisible, setIsLayerVisible] = useState(false)
+  const [hoveredBorough, setHoveredBorough] = useState<string | null>(null)
+
+  const addLayers = useCallback(() => {
+    if (!map) return
+
+    // Add source if it doesn't exist
+    if (!map.getSource('boroughs')) {
+      map.addSource('boroughs', {
+        type: 'geojson',
+        data: boroughBoundaries,
+      })
+    }
+
+    // Add fill layer for each borough with different colors
+    if (!map.getLayer('boroughs-fill')) {
+      map.addLayer({
+        id: 'boroughs-fill',
+        type: 'fill',
+        source: 'boroughs',
+        paint: {
+          'fill-color': [
+            'match',
+            ['get', 'borough'],
+            'Manhattan', BOROUGH_COLORS.Manhattan,
+            'Brooklyn', BOROUGH_COLORS.Brooklyn,
+            'Queens', BOROUGH_COLORS.Queens,
+            'Bronx', BOROUGH_COLORS.Bronx,
+            'Staten Island', BOROUGH_COLORS['Staten Island'],
+            '#6b7280' // fallback
+          ],
+          'fill-opacity': 0.2,
+        },
+        layout: {
+          visibility: isLayerVisible ? 'visible' : 'none',
+        },
+      })
+    }
+
+    // Add outline layer
+    if (!map.getLayer('boroughs-outline')) {
+      map.addLayer({
+        id: 'boroughs-outline',
+        type: 'line',
+        source: 'boroughs',
+        paint: {
+          'line-color': [
+            'match',
+            ['get', 'borough'],
+            'Manhattan', BOROUGH_COLORS.Manhattan,
+            'Brooklyn', BOROUGH_COLORS.Brooklyn,
+            'Queens', BOROUGH_COLORS.Queens,
+            'Bronx', BOROUGH_COLORS.Bronx,
+            'Staten Island', BOROUGH_COLORS['Staten Island'],
+            '#6b7280' // fallback
+          ],
+          'line-width': 2,
+          'line-opacity': 0.8,
+        },
+        layout: {
+          visibility: isLayerVisible ? 'visible' : 'none',
+        },
+      })
+    }
+  }, [map, isLayerVisible])
+
+  useEffect(() => {
+    if (!map || !isLoaded) return
+
+    // Add layers on mount
+    addLayers()
+
+    // Hover effects
+    const handleMouseEnter = () => {
+      map.getCanvas().style.cursor = 'pointer'
+    }
+
+    const handleMouseLeave = () => {
+      map.getCanvas().style.cursor = ''
+      setHoveredBorough(null)
+    }
+
+    const handleMouseMove = (e: MapLibreGL.MapMouseEvent) => {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: ['boroughs-fill'],
+      })
+      if (features.length > 0) {
+        setHoveredBorough(features[0].properties?.name || null)
+      }
+    }
+
+    map.on('mouseenter', 'boroughs-fill', handleMouseEnter)
+    map.on('mouseleave', 'boroughs-fill', handleMouseLeave)
+    map.on('mousemove', 'boroughs-fill', handleMouseMove)
+
+    return () => {
+      map.off('mouseenter', 'boroughs-fill', handleMouseEnter)
+      map.off('mouseleave', 'boroughs-fill', handleMouseLeave)
+      map.off('mousemove', 'boroughs-fill', handleMouseMove)
+    }
+  }, [map, isLoaded, addLayers])
+
+  const toggleLayer = () => {
+    if (!map) return
+
+    const visibility = isLayerVisible ? 'none' : 'visible'
+    map.setLayoutProperty('boroughs-fill', 'visibility', visibility)
+    map.setLayoutProperty('boroughs-outline', 'visibility', visibility)
+    setIsLayerVisible(!isLayerVisible)
+  }
+
+  if (!isLoaded) return null
+
+  return (
+    <>
+      {hoveredBorough && isLayerVisible && (
+        <div className="absolute bottom-4 left-4 z-[1000] rounded-md bg-background/90 backdrop-blur px-3 py-2 text-sm font-medium border">
+          {hoveredBorough}
+        </div>
+      )}
+    </>
+  )
+}
+
 // Map pitch and bearing controls (must be inside Map component)
 function MapPitchBearingControls() {
   const { map, isLoaded } = useMap()
   const [pitch, setPitch] = useState(0)
   const [bearing, setBearing] = useState(0)
+  const [isBoroughLayerVisible, setIsBoroughLayerVisible] = useState(false)
 
   useEffect(() => {
     if (!map || !isLoaded) return
@@ -204,11 +344,24 @@ function MapPitchBearingControls() {
     })
   }
 
+  const toggleBoroughBoundaries = () => {
+    if (!map) return
+
+    const visibility = isBoroughLayerVisible ? 'none' : 'visible'
+    if (map.getLayer('boroughs-fill')) {
+      map.setLayoutProperty('boroughs-fill', 'visibility', visibility)
+    }
+    if (map.getLayer('boroughs-outline')) {
+      map.setLayoutProperty('boroughs-outline', 'visibility', visibility)
+    }
+    setIsBoroughLayerVisible(!isBoroughLayerVisible)
+  }
+
   if (!isLoaded) return null
 
   return (
     <div className="absolute top-3 left-3 z-[1000] flex flex-col gap-2">
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Button size="sm" variant="secondary" onClick={handle3DView}>
           <Mountain className="size-4 mr-1.5" />
           3D View
@@ -216,6 +369,18 @@ function MapPitchBearingControls() {
         <Button size="sm" variant="secondary" onClick={handleReset}>
           <RotateCcw className="size-4 mr-1.5" />
           Reset
+        </Button>
+        <Button
+          size="sm"
+          variant={isBoroughLayerVisible ? "default" : "secondary"}
+          onClick={toggleBoroughBoundaries}
+        >
+          {isBoroughLayerVisible ? (
+            <X className="size-4 mr-1.5" />
+          ) : (
+            <Layers className="size-4 mr-1.5" />
+          )}
+          {isBoroughLayerVisible ? 'Hide' : 'Show'} Boroughs
         </Button>
       </div>
       <div className="rounded-md bg-background/90 backdrop-blur px-3 py-2 text-xs font-mono border">
@@ -284,6 +449,7 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
       <Map center={NYC_CENTER} zoom={11}>
         <MapCenterController userLocation={userLocation} />
         <MapPitchBearingControls />
+        <BoroughBoundariesLayer />
 
         {/* Camera markers layer */}
         <CameraMarkersLayer
