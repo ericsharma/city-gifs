@@ -1,4 +1,13 @@
-export const boroughBoundaries = {
+interface FeatureCollectionWithCRS extends GeoJSON.FeatureCollection {
+  crs?: {
+    type: string;
+    properties: {
+      name: string;
+    };
+  };
+}
+
+export const boroughBoundaries: FeatureCollectionWithCRS = {
   type: 'FeatureCollection',
   crs: {
     type: 'name',

@@ -217,7 +217,7 @@ function BoroughBoundariesLayer({
                 source: 'boroughs',
                 paint: layer.paint,
                 layout: { visibility: isVisible ? 'visible' : 'none' }
-            })
+            } as MapLibreGL.AddLayerObject)
         }
     })
 
