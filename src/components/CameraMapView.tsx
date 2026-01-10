@@ -369,6 +369,8 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
   }
 
   const startTour = () => {
+    let isBoroughAnimating = false;
+
     const driverObj = driver({
       showProgress: true,
       steps: [
@@ -385,12 +387,47 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
         },
         {
           element: '#tour-borough-list',
-          popover: { title: 'Interactive Legend', description: 'Click items in the legend to toggle individual boroughs on and off. Watch as we focus on Manhattan.', side: "right", align: 'start' },
+          popover: { 
+            title: 'Interactive Legend', 
+            description: 'Click items in the legend to toggle individual boroughs on and off. Watch as we focus on Manhattan.', 
+            side: "right", 
+            align: 'start',
+            onNextClick: () => {
+                if (isBoroughAnimating) return
+                driverObj.moveNext()
+            }
+          },
           onHighlightStarted: () => {
+            isBoroughAnimating = true
             const boroughsToRemove = ['Brooklyn', 'Queens', 'Bronx', 'Staten Island']
+            
+            // Disable Next button visually and functionally
+            setTimeout(() => {
+                const nextBtn = document.querySelector('.driver-popover-next-btn') as HTMLButtonElement
+                if (nextBtn) {
+                    nextBtn.disabled = true
+                    // Add styling to match typical disabled state
+                    nextBtn.style.pointerEvents = 'none'
+                    nextBtn.style.opacity = '0.5'
+                    nextBtn.style.cursor = 'not-allowed'
+                }
+            }, 0)
+
             boroughsToRemove.forEach((borough, index) => {
               setTimeout(() => {
                 setVisibleBoroughs(prev => prev.filter(b => b !== borough))
+                
+                // Re-enable Next button after last animation
+                if (index === boroughsToRemove.length - 1) {
+                    isBoroughAnimating = false
+                    const nextBtn = document.querySelector('.driver-popover-next-btn') as HTMLButtonElement
+                    if (nextBtn) {
+                        nextBtn.disabled = false
+                        nextBtn.style.pointerEvents = ''
+                        nextBtn.style.opacity = ''
+                        nextBtn.style.cursor = ''
+                    }
+                }
               }, (index + 1) * 600)
             })
           },
@@ -433,7 +470,8 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
             }
         },
         { element: '#tour-map-controls', popover: { title: 'Map Controls', description: 'Find your location, Reset map orientation, and Zoom in/out.', side: "left", align: 'start' } },
-        { element: '#tour-help-btn', popover: { title: 'Help & Tour', description: 'Click here anytime to replay this walkthrough.', side: "bottom", align: 'end' } },
+        { element: '#tour-theme-toggle', popover: { title: 'Theme Switcher', description: 'Toggle between light and dark mode.', side: "bottom", align: 'end' } },
+        { element: '#tour-github-btn', popover: { title: 'Open Source', description: 'Check out the code on GitHub and give it a star if you like it!', side: "bottom", align: 'end' } },
       ]
     });
     driverObj.drive();

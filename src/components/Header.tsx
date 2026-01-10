@@ -2,6 +2,7 @@ import React from 'react'
 import { CityLogo } from './icons/CityLogo'
 import { Button } from './ui/button'
 import { Github } from 'lucide-react'
+import { ModeToggle } from './ModeToggle'
 
 interface HeaderProps {
   className?: string
@@ -49,9 +50,11 @@ export function Header({ className = '' }: HeaderProps) {
         </div>
       </div>
 
-      {/* GitHub Link */}
-      <div className="flex items-center">
+      {/* Actions */}
+      <div className="flex items-center gap-2">
+        <ModeToggle />
         <Button
+          id="tour-github-btn"
           variant="outline"
           size="sm"
           onClick={handleGitHubClick}

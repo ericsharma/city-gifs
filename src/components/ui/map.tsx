@@ -133,7 +133,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
     setIsStyleLoaded(false);
 
     const frameId = requestAnimationFrame(() => {
-      mapInstance.setStyle(newStyle, { diff: true });
+      mapInstance.setStyle(newStyle, { diff: false });
     });
 
     return () => cancelAnimationFrame(frameId);
