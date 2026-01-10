@@ -439,9 +439,6 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
               }, (index + 1) * 600)
             })
           },
-          onDeselected: () => {
-             setVisibleBoroughs(Object.keys(BOROUGH_COLORS))
-          }
         },
         {
             element: '#tour-search-wrapper',
@@ -484,6 +481,19 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
     });
     driverObj.drive();
   }
+
+  // Auto-start tour for new users
+  useEffect(() => {
+    const isNewUser = localStorage.getItem('city-gifs-new-user') !== 'false'
+    if (isNewUser) {
+        // Small delay to ensure map and UI are rendered
+        const timer = setTimeout(() => {
+            startTour()
+            localStorage.setItem('city-gifs-new-user', 'false')
+        }, 1500)
+        return () => clearTimeout(timer)
+    }
+  }, [])
 
   return (
     <div id="camera-map-view-container" className="h-full w-full relative">
