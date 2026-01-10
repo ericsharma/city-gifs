@@ -1,6 +1,5 @@
 import { useEffect, useState, useId, useCallback } from 'react'
 import type { Camera } from '../types/Camera'
-import { useGeolocation } from '../hooks/useGeolocation'
 import { Map, MapMarker, MarkerContent, MarkerPopup, MapPopup, MapControls, useMap } from '@/components/ui/map'
 import { Button } from '@/components/ui/button'
 import { RotateCcw, Mountain, Layers, X } from 'lucide-react'
@@ -418,9 +417,9 @@ function MapPitchBearingControls({
 }
 
 export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStartPreview, isLoading }: CameraMapViewProps) {
-  const { latitude, longitude, error, loading, getCurrentPosition, clearError } = useGeolocation()
   const [internalSelectedCamera, setInternalSelectedCamera] = useState<Camera | null>(null)
   const [visibleBoroughs, setVisibleBoroughs] = useState<string[]>(Object.keys(BOROUGH_COLORS))
+  const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null)
 
   // Keep track of which camera is selected (either from prop or internal)
   const activeSelectedCamera = selectedCamera !== undefined ? selectedCamera : internalSelectedCamera
@@ -448,41 +447,8 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
 
   const filteredCameras = cameras.filter(camera => visibleBoroughs.includes(camera.area))
 
-  const userLocation = latitude && longitude ? { latitude, longitude } : null
-
   return (
     <div className="h-full w-full relative">
-      {/* Custom locate button that uses our geolocation hook */}
-      <button
-        onClick={getCurrentPosition}
-        disabled={loading}
-        className="absolute top-4 right-4 z-[1000] bg-white hover:bg-gray-50 disabled:bg-gray-100 shadow-lg rounded-lg p-3 transition-colors border border-gray-200"
-        title="Find my location"
-      >
-        {loading ? (
-          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        ) : (
-          <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        )}
-      </button>
-
-      {/* Error notification */}
-      {error && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 text-red-800 px-4 py-2 rounded-lg shadow-lg max-w-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm">{error}</span>
-            <button onClick={clearError} className="ml-2 text-red-600 hover:text-red-800">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
-
       <Map center={NYC_CENTER} zoom={11}>
         <MapCenterController userLocation={userLocation} />
         <MapPitchBearingControls
@@ -561,11 +527,11 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
           </MapPopup>
         )}
 
-        {/* Map controls - only show zoom, not locate (we have custom locate button) */}
         <MapControls
           position="bottom-right"
-          showZoom={true}
-          showLocate={false}
+          showZoom
+          showLocate
+          onLocate={(coords) => setUserLocation(coords)}
         />
       </Map>
     </div>

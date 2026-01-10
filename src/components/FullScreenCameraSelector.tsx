@@ -48,7 +48,7 @@ export function FullScreenCameraSelector({
       </div>
 
       {/* Top Right Search Toggle */}
-      <div className={`absolute top-4 right-16 z-1001 flex items-center justify-end transition-all duration-300 ease-in-out ${isSearchOpen ? 'w-[calc(100vw-6rem)] md:w-80' : 'w-10'}`}>
+      <div className={`absolute top-4 right-4 z-1001 flex items-center justify-end transition-all duration-300 ease-in-out ${isSearchOpen ? 'w-[calc(100vw-6rem)] md:w-80' : 'w-10'}`}>
         <div className={`flex items-center bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 overflow-hidden ${isSearchOpen ? 'w-full p-1' : 'w-10 h-10 justify-center'}`}>
           {isSearchOpen ? (
             <>

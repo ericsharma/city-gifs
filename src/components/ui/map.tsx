@@ -643,21 +643,6 @@ function MapControls({
         className
       )}
     >
-      {showZoom && (
-        <ControlGroup>
-          <ControlButton onClick={handleZoomIn} label="Zoom in">
-            <Plus className="size-4" />
-          </ControlButton>
-          <ControlButton onClick={handleZoomOut} label="Zoom out">
-            <Minus className="size-4" />
-          </ControlButton>
-        </ControlGroup>
-      )}
-      {showCompass && (
-        <ControlGroup>
-          <CompassButton onClick={handleResetBearing} />
-        </ControlGroup>
-      )}
       {showLocate && (
         <ControlGroup>
           <ControlButton
@@ -670,6 +655,21 @@ function MapControls({
             ) : (
               <Locate className="size-4" />
             )}
+          </ControlButton>
+        </ControlGroup>
+      )}
+      {showCompass && (
+        <ControlGroup>
+          <CompassButton onClick={handleResetBearing} />
+        </ControlGroup>
+      )}
+      {showZoom && (
+        <ControlGroup>
+          <ControlButton onClick={handleZoomIn} label="Zoom in">
+            <Plus className="size-4" />
+          </ControlButton>
+          <ControlButton onClick={handleZoomOut} label="Zoom out">
+            <Minus className="size-4" />
           </ControlButton>
         </ControlGroup>
       )}
