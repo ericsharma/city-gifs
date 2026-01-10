@@ -355,6 +355,14 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
 
   const activeSelectedCamera = selectedCamera !== undefined ? selectedCamera : internalSelectedCamera
 
+  // Determine initial zoom level based on screen width
+  const initialZoom = useMemo(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return 10
+    }
+    return 11
+  }, [])
+
   const handleCameraSelect = (camera: Camera) => {
     setInternalSelectedCamera(camera)
     onCameraSelect(camera)
@@ -479,7 +487,7 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
 
   return (
     <div id="camera-map-view-container" className="h-full w-full relative">
-      <Map center={NYC_CENTER} zoom={11}>
+      <Map center={NYC_CENTER} zoom={initialZoom}>
         <MapEffects 
             userLocation={userLocation}
             is3DMode={is3DMode}
