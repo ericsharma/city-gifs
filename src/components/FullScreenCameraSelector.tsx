@@ -3,7 +3,7 @@ import type { Camera } from '../types/Camera';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 
-import { Search, Settings, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { CameraMapView } from './CameraMapView';
 
 interface FullScreenCameraSelectorProps {
@@ -19,7 +19,7 @@ export function FullScreenCameraSelector({
 }: FullScreenCameraSelectorProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
-  const [isControlsExpanded, setIsControlsExpanded] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const filteredCameras = cameras.filter((camera) => {
     const matchesSearch = camera.name
@@ -47,55 +47,44 @@ export function FullScreenCameraSelector({
         />
       </div>
 
-      {/* Desktop: Always show controls - Bottom Right */}
-      <div className='hidden md:block absolute bottom-4 right-4 z-1001 space-y-3'>
-        {/* Search Bar */}
-        <div className='bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-3 w-80'>
-          <div className='relative'>
-            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4' />
-            <Input
-              placeholder='Search NYC cameras...'
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className='pl-9 text-sm border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-primary'
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile: Expandable controls toggle - Top Right (next to location button) */}
-      <div className='md:hidden absolute top-4 right-16 z-1001'>
-        <Button
-          onClick={() => setIsControlsExpanded(!isControlsExpanded)}
-          className='bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 h-10 w-10 p-0 hover:bg-white'
-          variant='ghost'
-          title={isControlsExpanded ? 'Close search filters' : 'Open search filters'}
-        >
-          {isControlsExpanded ? (
-            <X className='h-5 w-5 text-gray-700' />
-          ) : (
-            <Settings className='h-5 w-5 text-gray-700' />
-          )}
-        </Button>
-      </div>
-
-      {/* Mobile: Expandable controls panel */}
-      {isControlsExpanded && (
-        <div className='md:hidden absolute top-16 right-16 z-1001 space-y-3 w-72 max-w-[calc(100vw-4rem)]'>
-          {/* Search Bar */}
-          <div className='bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-3'>
-            <div className='relative'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4' />
+      {/* Top Right Search Toggle */}
+      <div className={`absolute top-4 right-16 z-1001 flex items-center justify-end transition-all duration-300 ease-in-out ${isSearchOpen ? 'w-[calc(100vw-6rem)] md:w-80' : 'w-10'}`}>
+        <div className={`flex items-center bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 overflow-hidden ${isSearchOpen ? 'w-full p-1' : 'w-10 h-10 justify-center'}`}>
+          {isSearchOpen ? (
+            <>
+              <Search className="h-4 w-4 text-muted-foreground ml-2 shrink-0" />
               <Input
-                placeholder='Search NYC cameras...'
+                autoFocus
+                placeholder='Search cameras...'
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className='pl-9 text-sm border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-primary'
+                className='border-0 bg-transparent shadow-none focus-visible:ring-0 h-8 text-sm w-full'
               />
-            </div>
-          </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 shrink-0 hover:bg-gray-100 rounded-full" 
+                onClick={() => { 
+                  setIsSearchOpen(false); 
+                  setSearchTerm(''); 
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-10 w-10 p-0 hover:bg-gray-50 rounded-lg" 
+              onClick={() => setIsSearchOpen(true)}
+              title="Search cameras"
+            >
+              <Search className="h-5 w-5 text-gray-700" />
+            </Button>
+          )}
         </div>
-      )}
+      </div>
 
     </div>
   );

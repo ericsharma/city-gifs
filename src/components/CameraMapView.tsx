@@ -333,21 +333,23 @@ function MapPitchBearingControls({
 }) {
   const { map, isLoaded } = useMap()
   const [isBoroughLayerVisible, setIsBoroughLayerVisible] = useState(false)
+  const [is3DMode, setIs3DMode] = useState(false)
 
-  const handle3DView = () => {
-    map?.easeTo({
-      pitch: 60,
-      bearing: -20,
-      duration: 1000,
-    })
-  }
-
-  const handleReset = () => {
-    map?.easeTo({
-      pitch: 0,
-      bearing: 0,
-      duration: 1000,
-    })
+  const toggle3DView = () => {
+    if (is3DMode) {
+      map?.easeTo({
+        pitch: 0,
+        bearing: 0,
+        duration: 1000,
+      })
+    } else {
+      map?.easeTo({
+        pitch: 60,
+        bearing: -20,
+        duration: 1000,
+      })
+    }
+    setIs3DMode(!is3DMode)
   }
 
   const toggleBoroughBoundaries = () => {
@@ -368,13 +370,13 @@ function MapPitchBearingControls({
   return (
     <div className="absolute top-3 left-3 z-[1000] flex flex-col gap-2">
       <div className="flex gap-2 flex-wrap">
-        <Button size="sm" variant="secondary" onClick={handle3DView}>
+        <Button
+          size="sm"
+          variant={is3DMode ? "default" : "secondary"}
+          onClick={toggle3DView}
+        >
           <Mountain className="size-4 mr-1.5" />
           3D View
-        </Button>
-        <Button size="sm" variant="secondary" onClick={handleReset}>
-          <RotateCcw className="size-4 mr-1.5" />
-          Reset
         </Button>
         <Button
           size="sm"
