@@ -17,14 +17,8 @@ interface CameraMapViewProps {
 // NYC center coordinates (around Manhattan)
 const NYC_CENTER: [number, number] = [-73.9851, 40.7589]
 
-// Borough color mapping for visual distinction
-const BOROUGH_COLORS = {
-  'Manhattan': '#ef4444', // red
-  'Brooklyn': '#3b82f6',  // blue
-  'Queens': '#22c55e',    // green
-  'Bronx': '#f59e0b',     // amber
-  'Staten Island': '#8b5cf6', // violet
-} as const
+// Single marker color for all cameras
+const MARKER_COLOR = '#3b82f6' // blue
 
 // Convert cameras to GeoJSON format
 function camerasToGeoJSON(cameras: Camera[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
@@ -92,16 +86,7 @@ function CameraMarkersLayer({
           8, // larger for selected
           6  // normal size
         ],
-        'circle-color': [
-          'match',
-          ['get', 'area'],
-          'Manhattan', BOROUGH_COLORS.Manhattan,
-          'Brooklyn', BOROUGH_COLORS.Brooklyn,
-          'Queens', BOROUGH_COLORS.Queens,
-          'Bronx', BOROUGH_COLORS.Bronx,
-          'Staten Island', BOROUGH_COLORS['Staten Island'],
-          '#6b7280' // fallback
-        ],
+        'circle-color': MARKER_COLOR,
         'circle-stroke-width': 2,
         'circle-stroke-color': '#ffffff',
         'circle-opacity': 1,
@@ -341,18 +326,7 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
               <h3 className="font-medium text-gray-900 mb-1">
                 {activeSelectedCamera.name}
               </h3>
-              <p className="text-gray-600 mb-2">{activeSelectedCamera.area}</p>
-              <div className="flex items-center gap-2 mb-3">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{
-                    backgroundColor: BOROUGH_COLORS[activeSelectedCamera.area as keyof typeof BOROUGH_COLORS] || '#6b7280'
-                  }}
-                />
-                <span className="text-xs text-gray-500">
-                  {activeSelectedCamera.isOnline ? 'Online' : 'Offline'}
-                </span>
-              </div>
+              <p className="text-gray-600 text-xs mb-3">{activeSelectedCamera.area}</p>
               {onStartPreview && activeSelectedCamera.isOnline && (
                 <button
                   onClick={(e) => {
@@ -388,22 +362,6 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
           showLocate={false}
         />
       </Map>
-
-      {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg z-[1000]">
-        <h4 className="text-sm font-medium mb-2">Boroughs</h4>
-        <div className="space-y-1">
-          {Object.entries(BOROUGH_COLORS).map(([borough, color]) => (
-            <div key={borough} className="flex items-center gap-2">
-              <div
-                className="w-3 h-3 rounded-full border border-white shadow-sm"
-                style={{ backgroundColor: color }}
-              />
-              <span className="text-xs text-gray-700">{borough}</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
