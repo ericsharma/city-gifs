@@ -10,11 +10,63 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
-    <title>Liberty Gifs</title>
+  <style>
+    /* Critical CSS for immediate loading state - Scoped to loader only */
+    .initial-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      background-color: #ffffff;
+      color: #000000;
+    }
+
+    .loader-text {
+      margin-top: 20px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      opacity: 0.7;
+    }
+    
+    @keyframes signal-modulate {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.85); }
+    }
+    @keyframes pulse-red {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    
+    .animate-signal-modulate {
+      transform-box: fill-box;
+      transform-origin: bottom;
+      animation: signal-modulate 2s infinite ease-in-out;
+    }
+    .animate-pulse-red {
+      animation: pulse-red 2s infinite;
+      fill: #FF4500;
+    }
+  </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="initial-loader">
+        <svg width="80" height="80" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+          <rect x="10" y="50" width="15" height="50" class="animate-signal-modulate" style="animation-delay: 0.0s" />
+          <rect x="30" y="20" width="15" height="80" class="animate-signal-modulate" style="animation-delay: 0.4s" />
+          <rect x="50" y="40" width="15" height="60" class="animate-signal-modulate" style="animation-delay: 0.2s" />
+          <rect x="75" y="55" width="15" height="45" class="animate-signal-modulate" style="animation-delay: 0.6s" />
+          <circle cx="82" cy="30" r="6" class="animate-pulse-red" />
+        </svg>
+        <div class="loader-text">Loading Map...</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
