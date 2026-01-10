@@ -9,7 +9,9 @@ An installable, open-source tool that captures real-time images from NYC's publi
 *   **100% Browser-Based:** Runs entirely in your browser with no server-side processing.
 *   **User-Controlled:** You control the capture process, and all data remains on your machine.
 *   **Live Camera Feeds:** Select from hundreds of public NYC traffic cameras.
-*   **Interactive Map:** Find cameras across the five boroughs.
+*   **Interactive Map:** Explore NYC via a high-performance map using [mapcn](https://www.mapcn.dev/). Features include:
+    *   **GeoJSON Layering:** Thousands of camera markers rendered efficiently using map layers rather than expensive DOM elements.
+    *   **Borough Boundaries:** Detailed shoreline bordering using open-source [NYC Borough Boundary GeoJSON](https://www.nyc.gov/content/planning/pages/resources/datasets/borough-boundaries).
 *   **Instant GIF Creation:** Create and preview GIFs in seconds.
 *   **PWA Ready:** Installable on desktop or mobile for a native-app experience.
 
@@ -93,7 +95,7 @@ For development, you can run the Vite server locally.
 *   **Build Tool:** Vite
 *   **Styling:** Tailwind CSS, Shadcn UI
 *   **GIF Creation:** `ffmpeg.wasm`
-*   **Mapping:** Leaflet.js
+*   **Mapping:** [mapcn](https://www.mapcn.dev/) (MapLibre GL)
 *   **Containerization:** Docker, Nginx
 
 ## 🤝 Contributing
