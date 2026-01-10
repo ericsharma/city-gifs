@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.1] - 2026-01-10
+- Added theme switcher to header and improved guided tour styling
+- Fixed search box styling to match theme conventions
+- Removed duplicate camera data file
+
 ## [1.1.0] - 2026-01-10
 - Added interactive guided tour of map features using `driver.js`
 - Replaced Leaflet with Shadcn map component for better UI integration
