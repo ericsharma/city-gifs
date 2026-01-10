@@ -181,7 +181,7 @@ function MapCenterController({ userLocation }: { userLocation: { latitude: numbe
 }
 
 // Borough boundaries layer with fill and outline styles
-function BoroughBoundariesLayer() {
+function BoroughBoundariesLayer({ visibleBoroughs }: { visibleBoroughs: string[] }) {
   const { map, isLoaded } = useMap()
   const [isLayerVisible, setIsLayerVisible] = useState(false)
   const [hoveredBorough, setHoveredBorough] = useState<string | null>(null)
@@ -249,6 +249,22 @@ function BoroughBoundariesLayer() {
     }
   }, [map, isLayerVisible])
 
+  // Update layer filter when visibleBoroughs changes
+  useEffect(() => {
+    if (!map || !isLoaded) return
+
+    // Use a filter to show only visible boroughs
+    // The filter checks if 'BoroName' is in the visibleBoroughs array
+    const filter: any = ['in', ['get', 'BoroName'], ['literal', visibleBoroughs]]
+
+    if (map.getLayer('boroughs-fill')) {
+      map.setFilter('boroughs-fill', filter)
+    }
+    if (map.getLayer('boroughs-outline')) {
+      map.setFilter('boroughs-outline', filter)
+    }
+  }, [map, isLoaded, visibleBoroughs])
+
   useEffect(() => {
     if (!map || !isLoaded) return
 
@@ -308,25 +324,15 @@ function BoroughBoundariesLayer() {
 }
 
 // Map pitch and bearing controls (must be inside Map component)
-function MapPitchBearingControls() {
+function MapPitchBearingControls({
+  visibleBoroughs,
+  onToggleBorough
+}: {
+  visibleBoroughs: string[]
+  onToggleBorough: (borough: string) => void
+}) {
   const { map, isLoaded } = useMap()
-  const [pitch, setPitch] = useState(0)
-  const [bearing, setBearing] = useState(0)
   const [isBoroughLayerVisible, setIsBoroughLayerVisible] = useState(false)
-
-  useEffect(() => {
-    if (!map || !isLoaded) return
-
-    const handleMove = () => {
-      setPitch(Math.round(map.getPitch()))
-      setBearing(Math.round(map.getBearing()))
-    }
-
-    map.on('move', handleMove)
-    return () => {
-      map.off('move', handleMove)
-    }
-  }, [map, isLoaded])
 
   const handle3DView = () => {
     map?.easeTo({
@@ -383,10 +389,28 @@ function MapPitchBearingControls() {
           {isBoroughLayerVisible ? 'Hide' : 'Show'} Boroughs
         </Button>
       </div>
-      <div className="rounded-md bg-background/90 backdrop-blur px-3 py-2 text-xs font-mono border">
-        <div>Pitch: {pitch}°</div>
-        <div>Bearing: {bearing}°</div>
-      </div>
+      {isBoroughLayerVisible && (
+        <div className="rounded-md bg-background/90 backdrop-blur px-3 py-2 text-xs font-mono border">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            {Object.entries(BOROUGH_COLORS).map(([borough, color]) => {
+              const isVisible = visibleBoroughs.includes(borough)
+              return (
+                <div
+                  key={borough}
+                  className={`flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity ${!isVisible ? 'opacity-40' : ''}`}
+                  onClick={() => onToggleBorough(borough)}
+                >
+                  <div
+                    className="size-3 rounded-full border border-black/10"
+                    style={{ backgroundColor: color }}
+                  />
+                  <span>{borough}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -394,6 +418,7 @@ function MapPitchBearingControls() {
 export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStartPreview, isLoading }: CameraMapViewProps) {
   const { latitude, longitude, error, loading, getCurrentPosition, clearError } = useGeolocation()
   const [internalSelectedCamera, setInternalSelectedCamera] = useState<Camera | null>(null)
+  const [visibleBoroughs, setVisibleBoroughs] = useState<string[]>(Object.keys(BOROUGH_COLORS))
 
   // Keep track of which camera is selected (either from prop or internal)
   const activeSelectedCamera = selectedCamera !== undefined ? selectedCamera : internalSelectedCamera
@@ -410,6 +435,16 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
       onCameraSelect(null as unknown as Camera) // This might need adjustment based on parent component expectations
     }
   }
+
+  const toggleBorough = (borough: string) => {
+    setVisibleBoroughs(prev =>
+      prev.includes(borough)
+        ? prev.filter(b => b !== borough)
+        : [...prev, borough]
+    )
+  }
+
+  const filteredCameras = cameras.filter(camera => visibleBoroughs.includes(camera.area))
 
   const userLocation = latitude && longitude ? { latitude, longitude } : null
 
@@ -448,12 +483,15 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
 
       <Map center={NYC_CENTER} zoom={11}>
         <MapCenterController userLocation={userLocation} />
-        <MapPitchBearingControls />
-        <BoroughBoundariesLayer />
+        <MapPitchBearingControls
+          visibleBoroughs={visibleBoroughs}
+          onToggleBorough={toggleBorough}
+        />
+        <BoroughBoundariesLayer visibleBoroughs={visibleBoroughs} />
 
         {/* Camera markers layer */}
         <CameraMarkersLayer
-          cameras={cameras}
+          cameras={filteredCameras}
           onCameraSelect={handleCameraSelect}
           selectedCamera={activeSelectedCamera}
         />
