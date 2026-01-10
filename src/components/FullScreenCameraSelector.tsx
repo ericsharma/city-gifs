@@ -49,7 +49,7 @@ export function FullScreenCameraSelector({
 
       {/* Top Right Search Toggle */}
       <div id="tour-search-wrapper" className={`absolute top-4 right-4 z-1001 flex items-center justify-end transition-all duration-300 ease-in-out ${isSearchOpen ? 'w-[calc(100vw-6rem)] md:w-80' : 'w-10'}`}>
-        <div className={`flex items-center bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 overflow-hidden ${isSearchOpen ? 'w-full p-1' : 'w-10 h-10 justify-center'}`}>
+        <div className={`flex items-center bg-background/95 backdrop-blur-md rounded-lg shadow-lg border border-border/50 overflow-hidden ${isSearchOpen ? 'w-full p-1' : 'w-10 h-10 justify-center'}`}>
           {isSearchOpen ? (
             <>
               <Search className="h-4 w-4 text-muted-foreground ml-2 shrink-0" />
@@ -59,12 +59,12 @@ export function FullScreenCameraSelector({
                 placeholder='Search cameras...'
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className='border-0 bg-transparent shadow-none focus-visible:ring-0 h-8 text-sm w-full'
+                className='border-0 bg-transparent shadow-none focus-visible:ring-0 h-8 text-sm w-full text-foreground placeholder:text-muted-foreground'
               />
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-8 w-8 shrink-0 hover:bg-gray-100 rounded-full" 
+                className="h-8 w-8 shrink-0 hover:bg-accent rounded-full" 
                 onClick={() => { 
                   setIsSearchOpen(false); 
                   setSearchTerm(''); 
@@ -78,11 +78,11 @@ export function FullScreenCameraSelector({
               id="tour-search-toggle"
               variant="ghost" 
               size="icon" 
-              className="h-10 w-10 p-0 hover:bg-gray-50 rounded-lg" 
+              className="h-10 w-10 p-0 hover:bg-accent rounded-lg" 
               onClick={() => setIsSearchOpen(true)}
               title="Search cameras"
             >
-              <Search className="h-5 w-5 text-gray-700" />
+              <Search className="h-5 w-5 text-foreground" />
             </Button>
           )}
         </div>
