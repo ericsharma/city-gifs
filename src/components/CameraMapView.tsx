@@ -206,7 +206,7 @@ function BoroughBoundariesLayer() {
         paint: {
           'fill-color': [
             'match',
-            ['get', 'borough'],
+            ['get', 'BoroName'],
             'Manhattan', BOROUGH_COLORS.Manhattan,
             'Brooklyn', BOROUGH_COLORS.Brooklyn,
             'Queens', BOROUGH_COLORS.Queens,
@@ -231,7 +231,7 @@ function BoroughBoundariesLayer() {
         paint: {
           'line-color': [
             'match',
-            ['get', 'borough'],
+            ['get', 'BoroName'],
             'Manhattan', BOROUGH_COLORS.Manhattan,
             'Brooklyn', BOROUGH_COLORS.Brooklyn,
             'Queens', BOROUGH_COLORS.Queens,
@@ -270,7 +270,7 @@ function BoroughBoundariesLayer() {
         layers: ['boroughs-fill'],
       })
       if (features.length > 0) {
-        setHoveredBorough(features[0].properties?.name || null)
+        setHoveredBorough(features[0].properties?.BoroName || null)
       }
     }
 

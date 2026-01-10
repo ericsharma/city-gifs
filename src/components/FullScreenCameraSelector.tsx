@@ -2,15 +2,8 @@ import { useState } from 'react';
 import type { Camera } from '../types/Camera';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/select';
 
-import { Search, Filter, Settings, X } from 'lucide-react';
+import { Search, Settings, X } from 'lucide-react';
 import { CameraMapView } from './CameraMapView';
 
 interface FullScreenCameraSelectorProps {
@@ -25,21 +18,15 @@ export function FullScreenCameraSelector({
   isLoading = false,
 }: FullScreenCameraSelectorProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedArea, setSelectedArea] = useState<string>('all');
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
   const [isControlsExpanded, setIsControlsExpanded] = useState(false);
-
-  const areas = Array.from(
-    new Set(cameras.map((camera) => camera.area))
-  ).sort();
 
   const filteredCameras = cameras.filter((camera) => {
     const matchesSearch = camera.name
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
-    const matchesArea = selectedArea === 'all' || camera.area === selectedArea;
     const isOnline = camera.isOnline;
-    return matchesSearch && matchesArea && isOnline;
+    return matchesSearch && isOnline;
   });
 
   const handleCameraSelection = (camera: Camera) => {
@@ -74,26 +61,6 @@ export function FullScreenCameraSelector({
             />
           </div>
         </div>
-
-        {/* Borough Filter */}
-        <div className='bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-2'>
-          <Select value={selectedArea} onValueChange={setSelectedArea}>
-            <SelectTrigger className='border-0 bg-transparent shadow-none focus:ring-1 focus:ring-primary h-8 text-sm w-full'>
-              <div className='flex items-center gap-2'>
-                <Filter className='h-3 w-3 text-muted-foreground shrink-0' />
-                <SelectValue placeholder='Borough' />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value='all'>All Boroughs</SelectItem>
-              {areas.map((area) => (
-                <SelectItem key={area} value={area}>
-                  {area}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       {/* Mobile: Expandable controls toggle - Top Right (next to location button) */}
@@ -126,26 +93,6 @@ export function FullScreenCameraSelector({
                 className='pl-9 text-sm border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-primary'
               />
             </div>
-          </div>
-
-          {/* Borough Filter */}
-          <div className='bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-2'>
-            <Select value={selectedArea} onValueChange={setSelectedArea}>
-              <SelectTrigger className='border-0 bg-transparent shadow-none focus:ring-1 focus:ring-primary h-8 text-sm w-full'>
-                <div className='flex items-center gap-2'>
-                  <Filter className='h-3 w-3 text-muted-foreground shrink-0' />
-                  <SelectValue placeholder='Borough' />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='all'>All Boroughs</SelectItem>
-                {areas.map((area) => (
-                  <SelectItem key={area} value={area}>
-                    {area}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </div>
       )}
