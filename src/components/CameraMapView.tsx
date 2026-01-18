@@ -460,6 +460,29 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
       pitch: map.getPitch()
     })
 
+    const shareText = `Check out this live camera: ${camera.name} in ${camera.area} - NYC Camera GIFs`
+
+    const shareData = {
+      title: 'NYC Live Camera',
+      text: shareText,
+      url: shareURL
+    }
+
+    // Try native share API first (mobile PWA)
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      try {
+        await navigator.share(shareData)
+        toast.success('Camera shared successfully!')
+        return
+      } catch (error) {
+        // User cancelled or share failed, fall through to clipboard
+        if ((error as Error).name !== 'AbortError') {
+          console.log('Share failed:', error)
+        }
+      }
+    }
+
+    // Fallback to clipboard for desktop or if native share unavailable
     const success = await copyToClipboard(shareURL)
 
     if (success) {
