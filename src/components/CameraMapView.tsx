@@ -1,4 +1,4 @@
-import { useEffect, useState, useId, useMemo } from 'react'
+import { useEffect, useState, useId, useMemo, useCallback, useRef } from 'react'
 import type { Camera } from '../types/Camera'
 import { Map, MapMarker, MarkerContent, MarkerPopup, MapPopup, MapControls, useMap } from '@/components/ui/map'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,14 @@ interface CameraMapViewProps {
 const NYC_CENTER: [number, number] = [-73.9851, 40.7589]
 const MARKER_COLOR = '#3b82f6'
 
+// NYC bounds for validation
+const NYC_BOUNDS = {
+  minLng: -74.3,
+  maxLng: -73.7,
+  minLat: 40.5,
+  maxLat: 40.95
+}
+
 const BOROUGH_COLORS = {
   'Manhattan': '#ef4444',
   'Brooklyn': '#3b82f6',
@@ -27,6 +35,86 @@ const BOROUGH_COLORS = {
   'Bronx': '#f59e0b',
   'Staten Island': '#8b5cf6',
 } as const
+
+// Map state persistence interface
+interface SavedMapState {
+  center: { lng: number; lat: number }
+  zoom: number
+  bearing: number
+  pitch: number
+  is3DMode: boolean
+  isBoroughsVisible: boolean
+  visibleBoroughs: string[]
+}
+
+// Type guard for SavedMapState
+function isValidSavedMapState(obj: unknown): obj is SavedMapState {
+  if (!obj || typeof obj !== 'object') return false
+  const state = obj as Record<string, unknown>
+
+  return (
+    typeof state.center === 'object' &&
+    state.center !== null &&
+    typeof (state.center as Record<string, unknown>).lng === 'number' &&
+    typeof (state.center as Record<string, unknown>).lat === 'number' &&
+    typeof state.zoom === 'number' &&
+    typeof state.bearing === 'number' &&
+    typeof state.pitch === 'number' &&
+    typeof state.is3DMode === 'boolean' &&
+    typeof state.isBoroughsVisible === 'boolean' &&
+    Array.isArray(state.visibleBoroughs)
+  )
+}
+
+// Validate coordinates are within NYC bounds
+function isValidCoordinates(lng: number, lat: number): boolean {
+  return (
+    lng >= NYC_BOUNDS.minLng && lng <= NYC_BOUNDS.maxLng &&
+    lat >= NYC_BOUNDS.minLat && lat <= NYC_BOUNDS.maxLat &&
+    !isNaN(lng) && !isNaN(lat) &&
+    isFinite(lng) && isFinite(lat)
+  )
+}
+
+// Get default map state
+function getDefaultMapState(initialZoom: number): SavedMapState {
+  return {
+    center: { lng: NYC_CENTER[0], lat: NYC_CENTER[1] },
+    zoom: initialZoom,
+    bearing: 0,
+    pitch: 0,
+    is3DMode: false,
+    isBoroughsVisible: false,
+    visibleBoroughs: Object.keys(BOROUGH_COLORS)
+  }
+}
+
+// Load initial map state from localStorage
+function getInitialMapState(initialZoom: number): SavedMapState {
+  // SSR compatibility guard
+  if (typeof window === 'undefined') {
+    return getDefaultMapState(initialZoom)
+  }
+
+  try {
+    const saved = localStorage.getItem('city-gifs-map-state')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+
+      // Validate structure and coordinates
+      if (isValidSavedMapState(parsed) &&
+          isValidCoordinates(parsed.center.lng, parsed.center.lat)) {
+        return parsed
+      }
+
+      console.warn('Invalid saved map state structure or coordinates, using defaults')
+    }
+  } catch (e) {
+    console.warn('Failed to load saved map state:', e)
+  }
+
+  return getDefaultMapState(initialZoom)
+}
 
 // Convert cameras to GeoJSON format
 function camerasToGeoJSON(cameras: Camera[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
@@ -52,20 +140,28 @@ function camerasToGeoJSON(cameras: Camera[]): GeoJSON.FeatureCollection<GeoJSON.
 }
 
 // Component to handle map side effects (FlyTo, EaseTo)
-function MapEffects({ 
-    userLocation, 
-    is3DMode 
-}: { 
+function MapEffects({
+    userLocation,
+    is3DMode,
+    shouldPersistRef
+}: {
     userLocation: { latitude: number, longitude: number } | null,
-    is3DMode: boolean
+    is3DMode: boolean,
+    shouldPersistRef: React.MutableRefObject<boolean>
 }) {
     const { map } = useMap()
 
     useEffect(() => {
         if (userLocation && map) {
+            // Temporarily disable persistence when flying to user location
+            shouldPersistRef.current = false
             map.flyTo({ center: [userLocation.longitude, userLocation.latitude], zoom: 13, duration: 1000 })
+            // Re-enable persistence after animation completes
+            setTimeout(() => {
+                shouldPersistRef.current = true
+            }, 1100)
         }
-    }, [map, userLocation])
+    }, [map, userLocation, shouldPersistRef])
 
     useEffect(() => {
         if (!map) return
@@ -356,15 +452,83 @@ function MapOverlayControls({
   )
 }
 
+// Component to persist map state to localStorage
+function MapStatePersistence({
+  is3DMode,
+  isBoroughsVisible,
+  visibleBoroughs,
+  shouldPersist
+}: {
+  is3DMode: boolean
+  isBoroughsVisible: boolean
+  visibleBoroughs: string[]
+  shouldPersist: boolean
+}) {
+  const { map, isLoaded } = useMap()
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  // Shared save function
+  const saveMapState = useCallback(() => {
+    if (!map || !isLoaded || !shouldPersist) return
+
+    try {
+      const center = map.getCenter()
+      const state: SavedMapState = {
+        center: { lng: center.lng, lat: center.lat },
+        zoom: map.getZoom(),
+        bearing: map.getBearing(),
+        pitch: map.getPitch(),
+        is3DMode,
+        isBoroughsVisible,
+        visibleBoroughs
+      }
+      localStorage.setItem('city-gifs-map-state', JSON.stringify(state))
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+        console.warn('localStorage quota exceeded, clearing old state')
+        try {
+          localStorage.removeItem('city-gifs-map-state')
+        } catch (clearError) {
+          console.warn('Failed to clear localStorage:', clearError)
+        }
+      } else {
+        console.warn('Failed to save map state:', e)
+      }
+    }
+  }, [map, isLoaded, is3DMode, isBoroughsVisible, visibleBoroughs, shouldPersist])
+
+  // Debounced save for map movements
+  useEffect(() => {
+    if (!map || !isLoaded) return
+
+    const debouncedSave = () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      timeoutRef.current = setTimeout(saveMapState, 500)
+    }
+
+    map.on('moveend', debouncedSave)
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      map.off('moveend', debouncedSave)
+      // Final save on unmount
+      saveMapState()
+    }
+  }, [map, isLoaded, saveMapState])
+
+  // Immediate save when UI state changes
+  useEffect(() => {
+    saveMapState()
+  }, [saveMapState])
+
+  return null
+}
+
 export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStartPreview, isLoading }: CameraMapViewProps) {
-  const [internalSelectedCamera, setInternalSelectedCamera] = useState<Camera | null>(null)
-  const [visibleBoroughs, setVisibleBoroughs] = useState<string[]>(Object.keys(BOROUGH_COLORS))
-  const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null)
-  const [is3DMode, setIs3DMode] = useState(false)
-  const [isBoroughsVisible, setIsBoroughsVisible] = useState(false)
-
-  const activeSelectedCamera = selectedCamera !== undefined ? selectedCamera : internalSelectedCamera
-
   // Determine initial zoom level based on screen width
   const initialZoom = useMemo(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -372,6 +536,20 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
     }
     return 11
   }, [])
+
+  // Load saved map state from localStorage
+  const savedState = useMemo(() => getInitialMapState(initialZoom), [initialZoom])
+
+  const [internalSelectedCamera, setInternalSelectedCamera] = useState<Camera | null>(null)
+  const [visibleBoroughs, setVisibleBoroughs] = useState<string[]>(savedState.visibleBoroughs)
+  const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null)
+  const [is3DMode, setIs3DMode] = useState(savedState.is3DMode)
+  const [isBoroughsVisible, setIsBoroughsVisible] = useState(savedState.isBoroughsVisible)
+
+  // Control whether map state should be persisted (false during user location flyTo)
+  const shouldPersistRef = useRef(true)
+
+  const activeSelectedCamera = selectedCamera !== undefined ? selectedCamera : internalSelectedCamera
 
   const handleCameraSelect = (camera: Camera) => {
     setInternalSelectedCamera(camera)
@@ -507,12 +685,25 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
 
   return (
     <div id="camera-map-view-container" className="h-full w-full relative">
-      <Map center={NYC_CENTER} zoom={initialZoom}>
-        <MapEffects 
+      <Map
+        center={[savedState.center.lng, savedState.center.lat]}
+        zoom={savedState.zoom}
+        bearing={savedState.bearing}
+        pitch={savedState.pitch}
+      >
+        <MapEffects
             userLocation={userLocation}
             is3DMode={is3DMode}
+            shouldPersistRef={shouldPersistRef}
         />
-        
+
+        <MapStatePersistence
+          is3DMode={is3DMode}
+          isBoroughsVisible={isBoroughsVisible}
+          visibleBoroughs={visibleBoroughs}
+          shouldPersist={shouldPersistRef.current}
+        />
+
         <MapOverlayControls
           visibleBoroughs={visibleBoroughs}
           onToggleBorough={toggleBorough}
