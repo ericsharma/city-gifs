@@ -2,16 +2,17 @@ import { useEffect, useState, useId, useMemo, useCallback, useRef } from 'react'
 import type { Camera } from '../types/Camera'
 import { Map, MapMarker, MarkerContent, MarkerPopup, MapPopup, MapControls, useMap } from '@/components/ui/map'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Mountain, Layers, X, Play, HelpCircle, Radio, RadioTower } from 'lucide-react'
+import { Mountain, Layers, X, HelpCircle } from 'lucide-react'
 import type MapLibreGL from 'maplibre-gl'
 import { boroughBoundaries } from '../data/boroughsGeoJSON'
 import { driver } from "driver.js"
 import "driver.js/dist/driver.css"
+import { toast } from 'sonner'
 import { MARKER_COLOR, BOROUGH_COLORS } from '../constants/mapConfig'
-import { camerasToGeoJSON, createBoroughColorExpression, createCameraRadiusExpression } from '../utils/mapUtils'
+import { camerasToGeoJSON, createBoroughColorExpression, createCameraRadiusExpression, generateShareURL, copyToClipboard, parseShareURL } from '../utils/mapUtils'
 import { getInitialMapState, saveMapStateToStorage, type SavedMapState } from '../utils/storageUtils'
 import { setInputValue, setCursor } from '../utils/domUtils'
+import { CameraPopupCard } from './map/CameraPopupCard'
 
 interface CameraMapViewProps {
   cameras: Camera[]
@@ -22,6 +23,19 @@ interface CameraMapViewProps {
 }
 
 // All constants and utility functions moved to external modules
+
+// Component to capture map instance reference
+function MapInstanceCapture({ mapRef }: { mapRef: React.MutableRefObject<MapLibreGL.Map | null> }) {
+  const { map } = useMap()
+
+  useEffect(() => {
+    if (map) {
+      mapRef.current = map
+    }
+  }, [map, mapRef])
+
+  return null
+}
 
 // Component to handle map side effects (FlyTo, EaseTo)
 function MapEffects({
@@ -399,12 +413,61 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
   // Control whether map state should be persisted (false during user location flyTo)
   const shouldPersistRef = useRef(true)
 
+  // Store map instance reference for share functionality
+  const mapInstanceRef = useRef<MapLibreGL.Map | null>(null)
+
+  // Track if we've already handled the shared URL to prevent re-processing
+  const hasHandledSharedUrlRef = useRef(false)
+
   const activeSelectedCamera = selectedCamera !== undefined ? selectedCamera : internalSelectedCamera
 
   const handleCameraSelect = (camera: Camera) => {
     setInternalSelectedCamera(camera)
     onCameraSelect(camera)
   }
+
+  const handleClosePopup = useCallback(() => {
+    setInternalSelectedCamera(null)
+    if (selectedCamera !== undefined) onCameraSelect(null as unknown as Camera)
+
+    // Clear URL parameters to prevent re-opening the popup
+    const url = new URL(window.location.href)
+    url.searchParams.delete('camera')
+    url.searchParams.delete('lng')
+    url.searchParams.delete('lat')
+    url.searchParams.delete('zoom')
+    url.searchParams.delete('bearing')
+    url.searchParams.delete('pitch')
+    window.history.replaceState({}, '', url.toString())
+
+    // Reset shared URL ref so future shared links will work
+    hasHandledSharedUrlRef.current = false
+  }, [selectedCamera, onCameraSelect])
+
+  const handleShareCamera = useCallback(async (camera: Camera) => {
+    if (!mapInstanceRef.current) {
+      toast.error('Map not ready yet')
+      return
+    }
+
+    const map = mapInstanceRef.current
+
+    const shareURL = generateShareURL({
+      cameraId: camera.id,
+      center: { lng: camera.longitude, lat: camera.latitude },
+      zoom: map.getZoom(),
+      bearing: map.getBearing(),
+      pitch: map.getPitch()
+    })
+
+    const success = await copyToClipboard(shareURL)
+
+    if (success) {
+      toast.success('Camera link copied to clipboard!')
+    } else {
+      toast.error('Failed to copy link')
+    }
+  }, [])
 
   const filteredCameras = useMemo(() => 
     cameras.filter(camera => visibleBoroughs.includes(camera.area)),
@@ -523,6 +586,44 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
     }
   }, [])
 
+  // Handle shared camera URL on mount
+  useEffect(() => {
+    // Only process shared URL once
+    if (hasHandledSharedUrlRef.current) return
+
+    const sharedState = parseShareURL()
+    if (!sharedState || !sharedState.cameraId) return
+
+    // Find the camera by ID
+    const camera = cameras.find(c => c.id === sharedState.cameraId)
+    if (!camera) {
+      console.warn('Shared camera not found:', sharedState.cameraId)
+      return
+    }
+
+    // Mark as handled
+    hasHandledSharedUrlRef.current = true
+
+    // Select the camera
+    handleCameraSelect(camera)
+
+    // Apply shared map view if available
+    if (mapInstanceRef.current && sharedState.center) {
+      const map = mapInstanceRef.current
+
+      // Small delay to ensure map is fully loaded
+      setTimeout(() => {
+        map.flyTo({
+          center: [sharedState.center!.lng, sharedState.center!.lat],
+          zoom: sharedState.zoom ?? map.getZoom(),
+          bearing: sharedState.bearing ?? map.getBearing(),
+          pitch: sharedState.pitch ?? map.getPitch(),
+          duration: 1500
+        })
+      }, 500)
+    }
+  }, [cameras]) // Run when cameras are loaded
+
   return (
     <div id="camera-map-view-container" className="h-full w-full relative">
       <Map
@@ -531,6 +632,8 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
         bearing={savedState.bearing}
         pitch={savedState.pitch}
       >
+        <MapInstanceCapture mapRef={mapInstanceRef} />
+
         <MapEffects
             userLocation={userLocation}
             is3DMode={is3DMode}
@@ -587,95 +690,16 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
           <MapPopup
             longitude={activeSelectedCamera.longitude}
             latitude={activeSelectedCamera.latitude}
-            onClose={() => {
-                setInternalSelectedCamera(null)
-                if (selectedCamera !== undefined) onCameraSelect(null as unknown as Camera)
-            }}
+            onClose={handleClosePopup}
             closeButton={false}
           >
-            <div className="relative bg-card text-card-foreground rounded-lg border shadow-lg min-w-[240px] max-w-[280px] overflow-hidden">
-              {/* Close Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setInternalSelectedCamera(null)
-                  if (selectedCamera !== undefined) onCameraSelect(null as unknown as Camera)
-                }}
-                className="absolute top-2 right-2 z-10 p-1.5 rounded-md bg-background/80 backdrop-blur-sm hover:bg-background transition-colors border border-border/50 shadow-sm"
-                aria-label="Close popup"
-              >
-                <X className="size-3.5 text-muted-foreground" />
-              </button>
-
-              {/* Content */}
-              <div className="p-4 space-y-3">
-                {/* Header Section */}
-                <div className="pr-6 space-y-2">
-                  {/* Camera Name - Most Prominent */}
-                  <h3 className="text-base font-semibold leading-tight text-foreground">
-                    {activeSelectedCamera.name}
-                  </h3>
-
-                  {/* Area and Status Row */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm text-muted-foreground">
-                      {activeSelectedCamera.area}
-                    </p>
-                    <Badge
-                      variant={activeSelectedCamera.isOnline ? "default" : "secondary"}
-                      className={activeSelectedCamera.isOnline
-                        ? "bg-green-500/90 hover:bg-green-500 border-green-600/20 text-white dark:bg-green-600/80 dark:hover:bg-green-600"
-                        : "bg-gray-400/90 hover:bg-gray-400 border-gray-500/20 text-white dark:bg-gray-600/80 dark:hover:bg-gray-600"
-                      }
-                    >
-                      {activeSelectedCamera.isOnline ? (
-                        <>
-                          <Radio className="size-3" />
-                          Live
-                        </>
-                      ) : (
-                        <>
-                          <RadioTower className="size-3" />
-                          Offline
-                        </>
-                      )}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Action Button */}
-                {onStartPreview && activeSelectedCamera.isOnline && (
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onStartPreview(activeSelectedCamera)
-                    }}
-                    disabled={isLoading}
-                    size="sm"
-                    className="w-full"
-                  >
-                    {isLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <Play className="size-4 mr-2" />
-                        Start Live Preview
-                      </>
-                    )}
-                  </Button>
-                )}
-
-                {/* Offline Message */}
-                {!activeSelectedCamera.isOnline && (
-                  <div className="text-xs text-muted-foreground text-center py-1">
-                    Camera is currently offline
-                  </div>
-                )}
-              </div>
-            </div>
+            <CameraPopupCard
+              camera={activeSelectedCamera}
+              isLoading={isLoading}
+              onClose={handleClosePopup}
+              onStartPreview={onStartPreview}
+              onShare={handleShareCamera}
+            />
           </MapPopup>
         )}
 

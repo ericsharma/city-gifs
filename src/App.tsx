@@ -79,11 +79,14 @@ function App() {
   }
 
   // Check for camera ID in URL on app load
+  // Only auto-expand to live preview if it's NOT a map share link
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const cameraId = urlParams.get('camera')
-    
-    if (cameraId) {
+    const hasMapCoordinates = urlParams.has('lng') && urlParams.has('lat')
+
+    // If there are map coordinates, it's a map share link - let CameraMapView handle it
+    if (cameraId && !hasMapCoordinates) {
       const camera = allCameras.find(cam => cam.id === cameraId)
       if (camera) {
         setSelectedCamera(camera)
