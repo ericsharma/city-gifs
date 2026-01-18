@@ -7,6 +7,10 @@ import type MapLibreGL from 'maplibre-gl'
 import { boroughBoundaries } from '../data/boroughsGeoJSON'
 import { driver } from "driver.js"
 import "driver.js/dist/driver.css"
+import { MARKER_COLOR, BOROUGH_COLORS } from '../constants/mapConfig'
+import { camerasToGeoJSON, createBoroughColorExpression, createCameraRadiusExpression } from '../utils/mapUtils'
+import { getInitialMapState, saveMapStateToStorage, type SavedMapState } from '../utils/storageUtils'
+import { setInputValue, setCursor } from '../utils/domUtils'
 
 interface CameraMapViewProps {
   cameras: Camera[]
@@ -16,128 +20,7 @@ interface CameraMapViewProps {
   isLoading?: boolean
 }
 
-// NYC center coordinates (around Manhattan)
-const NYC_CENTER: [number, number] = [-73.9851, 40.7589]
-const MARKER_COLOR = '#3b82f6'
-
-// NYC bounds for validation
-const NYC_BOUNDS = {
-  minLng: -74.3,
-  maxLng: -73.7,
-  minLat: 40.5,
-  maxLat: 40.95
-}
-
-const BOROUGH_COLORS = {
-  'Manhattan': '#ef4444',
-  'Brooklyn': '#3b82f6',
-  'Queens': '#22c55e',
-  'Bronx': '#f59e0b',
-  'Staten Island': '#8b5cf6',
-} as const
-
-// Map state persistence interface
-interface SavedMapState {
-  center: { lng: number; lat: number }
-  zoom: number
-  bearing: number
-  pitch: number
-  is3DMode: boolean
-  isBoroughsVisible: boolean
-  visibleBoroughs: string[]
-}
-
-// Type guard for SavedMapState
-function isValidSavedMapState(obj: unknown): obj is SavedMapState {
-  if (!obj || typeof obj !== 'object') return false
-  const state = obj as Record<string, unknown>
-
-  return (
-    typeof state.center === 'object' &&
-    state.center !== null &&
-    typeof (state.center as Record<string, unknown>).lng === 'number' &&
-    typeof (state.center as Record<string, unknown>).lat === 'number' &&
-    typeof state.zoom === 'number' &&
-    typeof state.bearing === 'number' &&
-    typeof state.pitch === 'number' &&
-    typeof state.is3DMode === 'boolean' &&
-    typeof state.isBoroughsVisible === 'boolean' &&
-    Array.isArray(state.visibleBoroughs)
-  )
-}
-
-// Validate coordinates are within NYC bounds
-function isValidCoordinates(lng: number, lat: number): boolean {
-  return (
-    lng >= NYC_BOUNDS.minLng && lng <= NYC_BOUNDS.maxLng &&
-    lat >= NYC_BOUNDS.minLat && lat <= NYC_BOUNDS.maxLat &&
-    !isNaN(lng) && !isNaN(lat) &&
-    isFinite(lng) && isFinite(lat)
-  )
-}
-
-// Get default map state
-function getDefaultMapState(initialZoom: number): SavedMapState {
-  return {
-    center: { lng: NYC_CENTER[0], lat: NYC_CENTER[1] },
-    zoom: initialZoom,
-    bearing: 0,
-    pitch: 0,
-    is3DMode: false,
-    isBoroughsVisible: false,
-    visibleBoroughs: Object.keys(BOROUGH_COLORS)
-  }
-}
-
-// Load initial map state from localStorage
-function getInitialMapState(initialZoom: number): SavedMapState {
-  // SSR compatibility guard
-  if (typeof window === 'undefined') {
-    return getDefaultMapState(initialZoom)
-  }
-
-  try {
-    const saved = localStorage.getItem('city-gifs-map-state')
-    if (saved) {
-      const parsed = JSON.parse(saved)
-
-      // Validate structure and coordinates
-      if (isValidSavedMapState(parsed) &&
-          isValidCoordinates(parsed.center.lng, parsed.center.lat)) {
-        return parsed
-      }
-
-      console.warn('Invalid saved map state structure or coordinates, using defaults')
-    }
-  } catch (e) {
-    console.warn('Failed to load saved map state:', e)
-  }
-
-  return getDefaultMapState(initialZoom)
-}
-
-// Convert cameras to GeoJSON format
-function camerasToGeoJSON(cameras: Camera[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
-  return {
-    type: 'FeatureCollection',
-    features: cameras
-      .filter(c => c.isOnline)
-      .map(camera => ({
-        type: 'Feature' as const,
-        properties: {
-          id: camera.id,
-          name: camera.name,
-          area: camera.area,
-          isOnline: camera.isOnline,
-          imageUrl: camera.imageUrl,
-        },
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [camera.longitude, camera.latitude],
-        },
-      })),
-  }
-}
+// All constants and utility functions moved to external modules
 
 // Component to handle map side effects (FlyTo, EaseTo)
 function MapEffects({
@@ -207,12 +90,8 @@ function CameraMarkersLayer({
         type: 'circle',
         source: sourceId,
         paint: {
-            'circle-radius': [
-            'case',
-            ['==', ['get', 'id'], selectedCamera?.id || ''],
-            8,
-            6
-            ],
+            // @ts-expect-error - MapLibre GL expression types are overly strict, but this is a valid expression
+            'circle-radius': createCameraRadiusExpression(selectedCamera?.id),
             'circle-color': MARKER_COLOR,
             'circle-stroke-width': 2,
             'circle-stroke-color': '#ffffff',
@@ -228,8 +107,8 @@ function CameraMarkersLayer({
       if (camera) onCameraSelect(camera)
     }
 
-    const handleMouseEnter = () => { map.getCanvas().style.cursor = 'pointer' }
-    const handleMouseLeave = () => { map.getCanvas().style.cursor = '' }
+    const handleMouseEnter = () => { setCursor(map, 'pointer') }
+    const handleMouseLeave = () => { setCursor(map, '') }
 
     map.on('click', layerId, handleClick)
     map.on('mouseenter', layerId, handleMouseEnter)
@@ -256,12 +135,11 @@ function CameraMarkersLayer({
 
   useEffect(() => {
     if (!map || !isLoaded || !map.getLayer(layerId)) return
-    map.setPaintProperty(layerId, 'circle-radius', [
-      'case',
-      ['==', ['get', 'id'], selectedCamera?.id || ''],
-      8,
-      6
-    ])
+    map.setPaintProperty(
+      layerId,
+      'circle-radius',
+      createCameraRadiusExpression(selectedCamera?.id)
+    )
   }, [map, isLoaded, layerId, selectedCamera])
 
   return null
@@ -285,31 +163,15 @@ function BoroughBoundariesLayer({
       map.addSource('boroughs', { type: 'geojson', data: boroughBoundaries })
     }
 
+    const colorExpression = createBoroughColorExpression()
+
     const layers = [
         { id: 'boroughs-fill', type: 'fill' as const, paint: {
-            'fill-color': [
-                'match',
-                ['get', 'BoroName'],
-                'Manhattan', BOROUGH_COLORS.Manhattan,
-                'Brooklyn', BOROUGH_COLORS.Brooklyn,
-                'Queens', BOROUGH_COLORS.Queens,
-                'Bronx', BOROUGH_COLORS.Bronx,
-                'Staten Island', BOROUGH_COLORS['Staten Island'],
-                '#6b7280'
-            ],
+            'fill-color': colorExpression,
             'fill-opacity': 0.2,
         }},
         { id: 'boroughs-outline', type: 'line' as const, paint: {
-            'line-color': [
-                'match',
-                ['get', 'BoroName'],
-                'Manhattan', BOROUGH_COLORS.Manhattan,
-                'Brooklyn', BOROUGH_COLORS.Brooklyn,
-                'Queens', BOROUGH_COLORS.Queens,
-                'Bronx', BOROUGH_COLORS.Bronx,
-                'Staten Island', BOROUGH_COLORS['Staten Island'],
-                '#6b7280'
-            ],
+            'line-color': colorExpression,
             'line-width': 2,
             'line-opacity': 0.8,
         }}
@@ -327,9 +189,9 @@ function BoroughBoundariesLayer({
         }
     })
 
-    const handleMouseEnter = () => { map.getCanvas().style.cursor = 'pointer' }
-    const handleMouseLeave = () => { 
-        map.getCanvas().style.cursor = ''
+    const handleMouseEnter = () => { setCursor(map, 'pointer') }
+    const handleMouseLeave = () => {
+        setCursor(map, '')
         setHoveredBorough(null)
     }
     const handleMouseMove = (e: MapLibreGL.MapMouseEvent) => {
@@ -471,30 +333,17 @@ function MapStatePersistence({
   const saveMapState = useCallback(() => {
     if (!map || !isLoaded || !shouldPersist) return
 
-    try {
-      const center = map.getCenter()
-      const state: SavedMapState = {
-        center: { lng: center.lng, lat: center.lat },
-        zoom: map.getZoom(),
-        bearing: map.getBearing(),
-        pitch: map.getPitch(),
-        is3DMode,
-        isBoroughsVisible,
-        visibleBoroughs
-      }
-      localStorage.setItem('city-gifs-map-state', JSON.stringify(state))
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-        console.warn('localStorage quota exceeded, clearing old state')
-        try {
-          localStorage.removeItem('city-gifs-map-state')
-        } catch (clearError) {
-          console.warn('Failed to clear localStorage:', clearError)
-        }
-      } else {
-        console.warn('Failed to save map state:', e)
-      }
+    const center = map.getCenter()
+    const state: SavedMapState = {
+      center: { lng: center.lng, lat: center.lat },
+      zoom: map.getZoom(),
+      bearing: map.getBearing(),
+      pitch: map.getPitch(),
+      is3DMode,
+      isBoroughsVisible,
+      visibleBoroughs
     }
+    saveMapStateToStorage(state)
   }, [map, isLoaded, is3DMode, isBoroughsVisible, visibleBoroughs, shouldPersist])
 
   // Debounced save for map movements
@@ -638,24 +487,14 @@ export function CameraMapView({ cameras, onCameraSelect, selectedCamera, onStart
                 setTimeout(() => {
                     const input = document.getElementById('tour-search-input') as HTMLInputElement;
                     if (input) {
-                        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
-                        if (nativeInputValueSetter) {
-                            nativeInputValueSetter.call(input, 'Central');
-                            const ev = new Event('input', { bubbles: true});
-                            input.dispatchEvent(ev);
-                        }
+                        setInputValue(input, 'Central');
                     }
                 }, 500);
             },
             onDeselected: () => {
                 const input = document.getElementById('tour-search-input') as HTMLInputElement;
                 if (input) {
-                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
-                    if (nativeInputValueSetter) {
-                        nativeInputValueSetter.call(input, '');
-                        const ev = new Event('input', { bubbles: true});
-                        input.dispatchEvent(ev);
-                    }
+                    setInputValue(input, '');
                     // Find and click the close button (next sibling of input)
                     const closeBtn = input.nextElementSibling as HTMLElement;
                     if (closeBtn) closeBtn.click();
