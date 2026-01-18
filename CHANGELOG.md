@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.3] - 2026-01-18
+- Added native mobile sharing for camera locations using Web Share API
+- Implemented camera share functionality with automatic fallback to clipboard on desktop
+- Added map state persistence (3D mode, borough visibility, zoom/pan position)
+- Fixed camera popup bug that prevented closing when sharing via URL
+- Fixed share URL to use camera coordinates instead of map center position
+- Added toast notifications for share actions and errors
+- Enhanced social sharing with Open Graph and Twitter meta tags
+- Refactored camera popup into dedicated CameraPopupCard component
+- Improved camera popup UI with better visual hierarchy
+- Added shareable links that preserve map view state (zoom, bearing, pitch)
+- Fixed URL parameter handling to prevent conflicting auto-expand behavior
+
 ## [1.1.2] - 2026-01-10
 - Implemented automatic guided tour for new users
 - Enhanced map error handling during camera selection transitions
