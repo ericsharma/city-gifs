@@ -9,10 +9,16 @@ import {
   Timer,
   Camera as CameraIcon,
   Grid3X3,
-  ChevronDown
+  ChevronDown,
+  Maximize2,
+  Minimize2,
+  EyeOff,
+  Eye,
 } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { Input } from './ui/input';
+import { COLORS, GLASS_STYLE, CAMERA_FILTER } from '../constants/theme';
+import { applyProcessedFilter } from '../utils/imageUtils';
 
 interface FullScreenLivePreviewProps {
   camera: Camera;
@@ -30,12 +36,6 @@ interface FullScreenLivePreviewProps {
   onBackToCamera: () => void;
   onViewFrames: () => void;
 }
-
-const glassStyle: React.CSSProperties = {
-  background: 'rgba(13, 12, 10, 0.75)',
-  backdropFilter: 'blur(12px)',
-  WebkitBackdropFilter: 'blur(12px)',
-};
 
 export function FullScreenLivePreview({
   camera,
@@ -55,8 +55,9 @@ export function FullScreenLivePreview({
 }: FullScreenLivePreviewProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const controlsTimeoutRef = useRef<number | null>(null);
+  const [viewMode, setViewMode] = useState<'normal' | 'immersive'>('normal');
   const lastTimestampRef = useRef<number>(0);
+  const lastTapRef = useRef<number>(0);
 
   const { data: cameraImage, isLoading, error } = useCameraPolling({
     cameraId: camera.id,
@@ -65,53 +66,51 @@ export function FullScreenLivePreview({
     enabled: isPollingEnabled
   });
 
+  // When a new frame arrives, pass raw or processed blob to parent
   useEffect(() => {
-    if (cameraImage?.blob && onImageUpdate && cameraImage.timestamp !== lastTimestampRef.current) {
-      lastTimestampRef.current = cameraImage.timestamp;
+    if (!cameraImage?.blob || !onImageUpdate || cameraImage.timestamp === lastTimestampRef.current) return;
+    lastTimestampRef.current = cameraImage.timestamp;
+
+    if (viewMode === 'immersive') {
+      applyProcessedFilter(cameraImage.blob)
+        .then(onImageUpdate)
+        .catch(() => onImageUpdate(cameraImage.blob)); // fallback to raw on error
+    } else {
       onImageUpdate(cameraImage.blob);
     }
-  }, [cameraImage, onImageUpdate]);
-
-  // Auto-hide controls after inactivity (except when capturing or settings open)
-  useEffect(() => {
-    if (showSettings || isCapturing) return;
-
-    const resetTimeout = () => {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-      setShowControls(true);
-      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 4000);
-    };
-
-    resetTimeout();
-    window.addEventListener('touchstart', resetTimeout);
-    window.addEventListener('click', resetTimeout);
-
-    return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-        controlsTimeoutRef.current = null;
-      }
-      window.removeEventListener('touchstart', resetTimeout);
-      window.removeEventListener('click', resetTimeout);
-    };
-  }, [showSettings, isCapturing]);
+  }, [cameraImage, onImageUpdate, viewMode]);
 
   const handleStartCapture = () => {
     if (!isPollingEnabled) onPollingEnabledChange(true);
     onStartCapture();
   };
 
+  const toggleViewMode = () => setViewMode(v => v === 'normal' ? 'immersive' : 'normal');
+
+  // Double-tap the image to toggle immersive mode
+  const handleImageTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      toggleViewMode();
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
+    }
+  };
+
+  const isImmersive = viewMode === 'immersive';
+
   return (
-    <div className="h-full flex flex-col relative overflow-hidden" style={{ background: '#0D0C0A' }}>
+    <div className="h-full flex flex-col relative overflow-hidden" style={{ background: COLORS.bgDeepest }}>
       {/* Full-screen camera preview */}
       <div className="flex-1 relative">
         {isLoading && !cameraImage ? (
           /* Loading state — scan-line HUD */
-          <div className="absolute inset-0 flex items-center justify-center" style={{ background: '#0D0C0A' }}>
+          <div className="absolute inset-0 flex items-center justify-center" style={{ background: COLORS.bgDeepest }}>
             <div className="text-center">
               <div
                 className="relative mx-auto mb-6 overflow-hidden"
-                style={{ width: 160, height: 100, border: '1px solid #2E2A22', background: '#0D0C0A' }}
+                style={{ width: 160, height: 100, border: `1px solid ${COLORS.bgSubtle}`, background: COLORS.bgDeepest }}
               >
                 <div
                   className="absolute left-0 right-0 animate-scan-line"
@@ -121,10 +120,10 @@ export function FullScreenLivePreview({
                   }}
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="font-mono text-xs tracking-widest" style={{ color: '#2E2A22' }}>■ ■ ■</span>
+                  <span className="font-mono text-xs tracking-widest" style={{ color: COLORS.bgSubtle }}>■ ■ ■</span>
                 </div>
               </div>
-              <p className="font-mono text-xs tracking-widest" style={{ color: '#D4952B' }}>
+              <p className="font-mono text-xs tracking-widest" style={{ color: COLORS.amber }}>
                 ACQUIRING SIGNAL...
               </p>
             </div>
@@ -133,24 +132,24 @@ export function FullScreenLivePreview({
           /* Error state — NO SIGNAL HUD */
           <div
             className="absolute inset-0 flex items-center justify-center text-center p-8"
-            style={{ background: '#0D0C0A' }}
+            style={{ background: COLORS.bgDeepest }}
           >
             <div>
-              <div className="font-mono text-xs tracking-widest mb-3" style={{ color: '#4A453B' }}>
+              <div className="font-mono text-xs tracking-widest mb-3" style={{ color: COLORS.border }}>
                 [ NO SIGNAL ]
               </div>
-              <div className="font-mono text-xs mb-8 leading-relaxed" style={{ color: '#6B665C' }}>
+              <div className="font-mono text-xs mb-8 leading-relaxed" style={{ color: COLORS.textDim }}>
                 CAMERA FEED UNAVAILABLE
                 <br />
-                <span style={{ color: '#4A453B' }}>CHECK CONNECTION AND RETRY</span>
+                <span style={{ color: COLORS.border }}>CHECK CONNECTION AND RETRY</span>
               </div>
               <button
                 onClick={onBackToCamera}
                 className="px-4 py-2 rounded text-sm transition-colors font-mono text-xs tracking-wide"
                 style={{
                   background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid #4A453B',
-                  color: '#A09A8F',
+                  border: `1px solid ${COLORS.border}`,
+                  color: COLORS.textSubtle,
                   cursor: 'pointer',
                 }}
               >
@@ -159,27 +158,52 @@ export function FullScreenLivePreview({
             </div>
           </div>
         ) : cameraImage ? (
-          <div className="absolute inset-0 flex items-center justify-center" style={{ background: '#0D0C0A' }}>
-            {/* Blurred ambient background — the feed's own colors fill the void */}
+          <div className="absolute inset-0" style={{ background: COLORS.bgDeepest }}>
+            {/* Blurred ambient background — always present */}
             <img
               src={cameraImage.url}
               alt=""
               aria-hidden="true"
               className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-              style={{ filter: 'blur(8px) saturate(1.3) brightness(1.1)', opacity: 0.7, transform: 'scale(1.05)' }}
+              style={{ filter: CAMERA_FILTER, opacity: 0.7, transform: 'scale(1.05)' }}
             />
             {/* Dark scrim for HUD readability */}
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'rgba(13,12,10,0.15)' }} />
 
-            {/* Sharp centered image */}
+            {/* Sharp image — full center in normal mode, PIP in immersive */}
             <img
               src={cameraImage.url}
               alt={`${camera.name} live feed`}
-              className="max-w-full max-h-full object-contain relative z-10"
+              onClick={handleImageTap}
               onLoad={() => {
                 if (cameraImage.url.startsWith('blob:')) {
                   setTimeout(() => URL.revokeObjectURL(cameraImage.url), 5000);
                 }
+              }}
+              style={isImmersive ? {
+                position: 'absolute',
+                bottom: 90,
+                right: 16,
+                width: 96,
+                height: 72,
+                objectFit: 'cover',
+                borderRadius: 4,
+                border: '1px solid rgba(255,255,255,0.25)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
+                zIndex: 20,
+                cursor: 'pointer',
+                transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+              } : {
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain',
+                zIndex: 10,
+                cursor: 'pointer',
+                transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             />
 
@@ -191,18 +215,19 @@ export function FullScreenLivePreview({
                   background: 'rgba(239,68,68,0.15)',
                   border: '1px solid rgba(239,68,68,0.3)',
                   backdropFilter: 'blur(8px)',
-                  color: '#EF4444',
+                  color: COLORS.red,
                 }}
               >
-                <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#EF4444' }} />
+                <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: COLORS.red }} />
                 <span>REC</span>
-                <span style={{ color: '#A09A8F' }}>{frameCount}/{maxFrames}</span>
+                {isImmersive && <span style={{ color: COLORS.amber }}>DREAMY</span>}
+                <span style={{ color: COLORS.textSubtle }}>{frameCount}/{maxFrames}</span>
               </div>
             )}
 
             {/* Timestamp */}
             <div
-              className="absolute bottom-20 right-4 font-mono text-xs px-2 py-1 rounded-sm z-20"
+              className="absolute bottom-20 left-4 font-mono text-xs px-2 py-1 rounded-sm z-20"
               style={{
                 background: 'rgba(13,12,10,0.7)',
                 color: 'rgba(255,255,255,0.7)',
@@ -213,8 +238,8 @@ export function FullScreenLivePreview({
             </div>
           </div>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center" style={{ background: '#0D0C0A' }}>
-            <p className="font-mono text-xs tracking-widest" style={{ color: '#D4952B' }}>
+          <div className="absolute inset-0 flex items-center justify-center" style={{ background: COLORS.bgDeepest }}>
+            <p className="font-mono text-xs tracking-widest" style={{ color: COLORS.amber }}>
               INITIALIZING...
             </p>
           </div>
@@ -229,8 +254,8 @@ export function FullScreenLivePreview({
       >
         {/* Top bar — frosted glass */}
         <div
-          className="absolute top-0 left-0 right-0 pointer-events-auto px-4 py-3"
-          style={{ ...glassStyle, borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          className={`absolute top-0 left-0 right-0 px-4 py-3 ${showControls ? 'pointer-events-auto' : 'pointer-events-none'}`}
+          style={{ ...GLASS_STYLE, borderBottom: '1px solid rgba(255,255,255,0.06)' }}
         >
           <div className="flex items-center justify-between">
             <Button
@@ -244,16 +269,40 @@ export function FullScreenLivePreview({
             </Button>
 
             <div className="flex items-center gap-2">
+              {/* Live/Paused badge */}
               <div
                 className="font-mono text-xs px-2 py-1 rounded-sm border"
                 style={
                   isPollingEnabled
-                    ? { color: '#D4952B', borderColor: 'rgba(212,149,43,0.3)', background: 'rgba(212,149,43,0.1)' }
-                    : { color: '#6B665C', borderColor: '#4A453B', background: 'transparent' }
+                    ? { color: COLORS.amber, borderColor: 'rgba(212,149,43,0.3)', background: 'rgba(212,149,43,0.1)' }
+                    : { color: COLORS.textDim, borderColor: COLORS.border, background: 'transparent' }
                 }
               >
                 {isPollingEnabled ? '● LIVE' : '○ PAUSED'}
               </div>
+
+              {/* Immersive mode toggle */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleViewMode}
+                className="h-9 w-9 p-0 transition-colors"
+                style={{ color: isImmersive ? COLORS.amber : 'rgba(255,255,255,0.7)' }}
+                title={isImmersive ? 'Exit immersive mode' : 'Enter immersive mode'}
+              >
+                {isImmersive ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+
+              {/* Hide HUD */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowControls(false)}
+                className="text-white/70 hover:text-white hover:bg-white/10 h-9 w-9 p-0"
+                title="Hide controls"
+              >
+                <EyeOff className="h-4 w-4" />
+              </Button>
 
               <Button
                 variant="ghost"
@@ -274,16 +323,17 @@ export function FullScreenLivePreview({
             >
               {camera.name}
             </h2>
-            <p className="font-mono text-xs mt-0.5 tracking-wide" style={{ color: '#6B665C' }}>
+            <p className="font-mono text-xs mt-0.5 tracking-wide" style={{ color: COLORS.textDim }}>
               {camera.area}
+              {isImmersive && <span style={{ color: COLORS.amber }}> · DREAMY MODE</span>}
             </p>
           </div>
         </div>
 
         {/* Bottom controls — frosted glass */}
         <div
-          className="absolute bottom-0 left-0 right-0 pointer-events-auto px-4 py-4"
-          style={{ ...glassStyle, borderTop: '1px solid rgba(255,255,255,0.06)' }}
+          className={`absolute bottom-0 left-0 right-0 px-4 py-4 ${showControls ? 'pointer-events-auto' : 'pointer-events-none'}`}
+          style={{ ...GLASS_STYLE, borderTop: '1px solid rgba(255,255,255,0.06)' }}
         >
           <div className="flex items-center justify-center gap-6 mb-4">
             {/* View frames */}
@@ -312,7 +362,7 @@ export function FullScreenLivePreview({
                 width: 56,
                 height: 56,
                 borderRadius: '50%',
-                background: '#EF4444',
+                background: COLORS.red,
                 border: '3px solid rgba(255,255,255,0.25)',
                 boxShadow: isCapturing
                   ? '0 0 24px rgba(239,68,68,0.5)'
@@ -342,7 +392,7 @@ export function FullScreenLivePreview({
                   background: 'rgba(255,255,255,0.08)',
                   border: '1px solid rgba(255,255,255,0.12)',
                   backdropFilter: 'blur(12px)',
-                  color: '#D4952B',
+                  color: COLORS.amber,
                   cursor: 'pointer',
                 }}
               >
@@ -355,8 +405,8 @@ export function FullScreenLivePreview({
           {isCapturing && (
             <div>
               <div className="flex justify-between font-mono text-xs mb-2">
-                <span style={{ color: '#EF4444' }}>● REC</span>
-                <span style={{ color: '#6B665C' }}>
+                <span style={{ color: COLORS.red }}>● REC{isImmersive ? ' · DREAMY' : ''}</span>
+                <span style={{ color: COLORS.textDim }}>
                   {frameCount} / {maxFrames}
                 </span>
               </div>
@@ -366,13 +416,31 @@ export function FullScreenLivePreview({
               >
                 <div
                   className="h-full rounded-full transition-all duration-300"
-                  style={{ width: `${(frameCount / maxFrames) * 100}%`, background: '#D4952B' }}
+                  style={{ width: `${(frameCount / maxFrames) * 100}%`, background: COLORS.amber }}
                 />
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Restore pill — visible only when controls are hidden */}
+      {!showControls && (
+        <button
+          onClick={() => setShowControls(true)}
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 py-2 rounded-full transition-opacity"
+          style={{
+            background: 'rgba(13,12,10,0.8)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: 'rgba(255,255,255,0.7)',
+          }}
+        >
+          <Eye className="h-3.5 w-3.5" />
+          <span className="font-mono text-xs tracking-wide">SHOW HUD</span>
+        </button>
+      )}
 
       {/* Settings panel — always dark, never bg-background */}
       {showSettings && (
@@ -383,12 +451,12 @@ export function FullScreenLivePreview({
         >
           <div
             className="w-full max-h-[70vh] rounded-t-2xl p-6 space-y-6 scrollable"
-            style={{ background: '#242019', borderTop: '1px solid #4A453B' }}
+            style={{ background: COLORS.bgPanel, borderTop: `1px solid ${COLORS.border}` }}
           >
             <div className="flex items-center justify-between">
               <h3
                 className="font-semibold"
-                style={{ color: '#EBE8E2', fontFamily: "'Satoshi', 'DM Sans', system-ui" }}
+                style={{ color: COLORS.textLight, fontFamily: "'Satoshi', 'DM Sans', system-ui" }}
               >
                 Camera Settings
               </h3>
@@ -404,18 +472,18 @@ export function FullScreenLivePreview({
 
             {/* Live feed */}
             <div className="space-y-4">
-              <h4 className="text-sm font-medium flex items-center gap-2" style={{ color: '#A09A8F' }}>
+              <h4 className="text-sm font-medium flex items-center gap-2" style={{ color: COLORS.textSubtle }}>
                 <Timer className="h-4 w-4" />
                 Live Feed
               </h4>
               <div className="flex items-center justify-between">
-                <label className="text-sm" style={{ color: '#D4D0C8' }}>
+                <label className="text-sm" style={{ color: COLORS.textLabel }}>
                   Enable live updates
                 </label>
                 <Switch checked={isPollingEnabled} onCheckedChange={onPollingEnabledChange} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm" style={{ color: '#D4D0C8' }}>
+                <label className="text-sm" style={{ color: COLORS.textLabel }}>
                   Update interval (seconds)
                 </label>
                 <Input
@@ -426,19 +494,19 @@ export function FullScreenLivePreview({
                   onChange={(e) => onPollingIntervalChange(Number(e.target.value))}
                   disabled={!isPollingEnabled}
                   className="border-[#4A453B] text-white"
-                  style={{ background: '#2E2A22' }}
+                  style={{ background: COLORS.bgSubtle }}
                 />
               </div>
             </div>
 
             {/* Recording */}
             <div className="space-y-4">
-              <h4 className="text-sm font-medium flex items-center gap-2" style={{ color: '#A09A8F' }}>
+              <h4 className="text-sm font-medium flex items-center gap-2" style={{ color: COLORS.textSubtle }}>
                 <CameraIcon className="h-4 w-4" />
                 Recording
               </h4>
               <div className="space-y-2">
-                <label className="text-sm" style={{ color: '#D4D0C8' }}>
+                <label className="text-sm" style={{ color: COLORS.textLabel }}>
                   Maximum frames
                 </label>
                 <Input
@@ -448,12 +516,12 @@ export function FullScreenLivePreview({
                   value={maxFrames}
                   onChange={(e) => onMaxFramesChange(Number(e.target.value))}
                   className="border-[#4A453B] text-white"
-                  style={{ background: '#2E2A22' }}
+                  style={{ background: COLORS.bgSubtle }}
                 />
               </div>
             </div>
 
-            <div className="pt-4" style={{ borderTop: '1px solid #4A453B' }}>
+            <div className="pt-4" style={{ borderTop: `1px solid ${COLORS.border}` }}>
               <Button
                 variant="outline"
                 onClick={() => setShowSettings(false)}

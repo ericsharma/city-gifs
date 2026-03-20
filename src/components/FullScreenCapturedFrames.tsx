@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { ScrollableFrameGrid } from './ScrollableFrameGrid';
 import { ArrowLeft, Timer } from 'lucide-react';
+import { COLORS } from '../constants/theme';
 
 interface CapturedFrame {
   blob: Blob;
@@ -43,8 +44,8 @@ export function FullScreenCapturedFrames({
 
   if (frames.length === 0) {
     return (
-      <div className="h-full flex flex-col" style={{ background: '#1A1814' }}>
-        <div className="p-4" style={{ borderBottom: '1px solid #4A453B' }}>
+      <div className="h-full flex flex-col" style={{ background: COLORS.bgDark }}>
+        <div className="p-4" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -60,19 +61,19 @@ export function FullScreenCapturedFrames({
 
         <div className="flex-1 flex items-center justify-center p-8 text-center">
           <div>
-            <div className="font-mono text-xs tracking-widest mb-3" style={{ color: '#2E2A22' }}>
+            <div className="font-mono text-xs tracking-widest mb-3" style={{ color: COLORS.bgSubtle }}>
               ⊞ &nbsp; ⊞ &nbsp; ⊞
             </div>
-            <div className="font-mono text-sm tracking-widest mb-2" style={{ color: '#D4952B' }}>
+            <div className="font-mono text-sm tracking-widest mb-2" style={{ color: COLORS.amber }}>
               CAPTURE BUFFER EMPTY
             </div>
-            <div className="font-mono text-xs mb-8 tracking-wide" style={{ color: '#6B665C' }}>
+            <div className="font-mono text-xs mb-8 tracking-wide" style={{ color: COLORS.textDim }}>
               NO FRAMES RECORDED
             </div>
             <Button
               onClick={onBackToPreview}
               className="font-medium"
-              style={{ background: '#D4952B', color: '#1A1814' }}
+              style={{ background: COLORS.amber, color: COLORS.bgDark }}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Return to Camera
@@ -124,7 +125,7 @@ export function FullScreenCapturedFrames({
         {gifBlob && !isCreatingGIF && (
           <div className="flex-shrink-0 p-3 border-b" style={{ background: 'rgba(212,149,43,0.08)', borderColor: 'rgba(212,149,43,0.2)' }}>
             <div className="text-center">
-              <span className="font-mono text-xs tracking-widest" style={{ color: '#D4952B' }}>
+              <span className="font-mono text-xs tracking-widest" style={{ color: COLORS.amber }}>
                 ✓ GIF READY
               </span>
             </div>
@@ -135,7 +136,7 @@ export function FullScreenCapturedFrames({
         {gifError && (
           <div className="flex-shrink-0 p-3 border-b" style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.2)' }}>
             <div className="text-center">
-              <span className="font-mono text-xs tracking-widest" style={{ color: '#EF4444' }}>
+              <span className="font-mono text-xs tracking-widest" style={{ color: COLORS.red }}>
                 ✕ {gifError}
               </span>
             </div>
@@ -171,9 +172,9 @@ export function FullScreenCapturedFrames({
         >
           <div
             className="text-center rounded-xl p-8 border"
-            style={{ background: '#242019', borderColor: '#4A453B', minWidth: 240 }}
+            style={{ background: COLORS.bgPanel, borderColor: COLORS.border, minWidth: 240 }}
           >
-            <div className="font-mono text-sm tracking-widest mb-6" style={{ color: '#D4952B' }}>
+            <div className="font-mono text-sm tracking-widest mb-6" style={{ color: COLORS.amber }}>
               ENCODING...
             </div>
             <div
@@ -182,10 +183,10 @@ export function FullScreenCapturedFrames({
             >
               <div
                 className="h-full rounded-full transition-all duration-300"
-                style={{ width: `${captureProgress}%`, background: '#D4952B' }}
+                style={{ width: `${captureProgress}%`, background: COLORS.amber }}
               />
             </div>
-            <div className="font-mono text-xs" style={{ color: '#6B665C' }}>
+            <div className="font-mono text-xs" style={{ color: COLORS.textDim }}>
               {captureProgress}%
             </div>
           </div>
@@ -200,7 +201,7 @@ export function FullScreenCapturedFrames({
           onClick={() => setSelectedFrame(null)}
         >
           <div className="relative max-w-4xl w-full">
-            <div className="overflow-hidden rounded-lg aspect-video" style={{ background: '#0D0C0A' }}>
+            <div className="overflow-hidden rounded-lg aspect-video" style={{ background: COLORS.bgDeepest }}>
               <img
                 src={frames[selectedFrame].url}
                 alt={`Frame ${selectedFrame + 1} preview`}
@@ -209,13 +210,13 @@ export function FullScreenCapturedFrames({
             </div>
             <div
               className="absolute bottom-4 left-4 font-mono text-xs px-3 py-1.5 rounded-sm"
-              style={{ background: 'rgba(13,12,10,0.8)', color: '#A09A8F' }}
+              style={{ background: 'rgba(13,12,10,0.8)', color: COLORS.textSubtle }}
             >
               FRAME {selectedFrame + 1} / {frames.length}
             </div>
             <div
               className="absolute top-4 right-4 font-mono text-xs px-3 py-1.5 rounded-sm"
-              style={{ background: 'rgba(13,12,10,0.8)', color: '#6B665C' }}
+              style={{ background: 'rgba(13,12,10,0.8)', color: COLORS.textDim }}
             >
               {new Date(frames[selectedFrame].timestamp).toLocaleTimeString()}
             </div>

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { AspectRatio } from './ui/aspect-ratio';
 import { Button } from './ui/button';
-import { 
+import {
   ImageIcon,
   Trash2,
   RefreshCw,
   Check
 } from 'lucide-react';
+import { COLORS } from '../constants/theme';
 
 interface CapturedFrame {
   blob: Blob;
@@ -127,10 +128,9 @@ export function ScrollableFrameGrid({
                   >
                     <div
                       className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
-                        isSelected
-                          ? 'border-[#D4952B] bg-[#D4952B]'
-                          : 'bg-black/30 border-white/50 hover:bg-black/50'
+                        isSelected ? '' : 'bg-black/30 border-white/50 hover:bg-black/50'
                       }`}
+                      style={isSelected ? { borderColor: COLORS.amber, background: COLORS.amber } : {}}
                     >
                       {isSelected && (
                         <Check className="h-3 w-3 text-white" strokeWidth={3} />
