@@ -27,6 +27,13 @@
     <meta name="twitter:title" content="Liberty GIFs - NYC Live Camera Map">
     <meta name="twitter:description" content="View live cameras across NYC and create GIFs from city camera feeds">
     <meta name="twitter:image" content="/icon-512.png">
+
+    <!-- Fonts: Satoshi (Fontshare), DM Sans + JetBrains Mono (Google Fonts) -->
+    <link rel="preconnect" href="https://api.fontshare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     /* Critical CSS for immediate loading state - Scoped to loader only */
     .initial-loader {
@@ -40,15 +47,16 @@
       align-items: center;
       justify-content: center;
       z-index: 9999;
-      background-color: #ffffff;
-      color: #000000;
+      background-color: #0D0C0A;
+      color: #D4952B;
     }
 
     .loader-text {
       margin-top: 20px;
-      font-family: system-ui, -apple-system, sans-serif;
-      font-size: 14px;
-      opacity: 0.7;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: #D4952B;
     }
     
     @keyframes signal-modulate {
@@ -81,7 +89,7 @@
           <rect x="75" y="55" width="15" height="45" class="animate-signal-modulate" style="animation-delay: 0.6s" />
           <circle cx="82" cy="30" r="6" class="animate-pulse-red" />
         </svg>
-        <div class="loader-text">Loading Map...</div>
+        <div class="loader-text">ACQUIRING SIGNAL...</div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

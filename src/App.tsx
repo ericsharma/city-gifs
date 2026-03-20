@@ -18,6 +18,8 @@ function App() {
   const [pollingInterval, setPollingInterval] = useState(1)
   const [isPollingEnabled, setIsPollingEnabled] = useState(false)
   const [isGifModalOpen, setIsGifModalOpen] = useState(false)
+  const [gifError, setGifError] = useState<string | null>(null)
+  const [isTransitioning, setIsTransitioning] = useState(false)
   
   const {
     frames,
@@ -62,11 +64,19 @@ function App() {
   }
 
   const handleViewFrames = () => {
-    setCurrentScreen('captured-frames')
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentScreen('captured-frames')
+      setIsTransitioning(false)
+    }, 150)
   }
 
   const handleBackToPreview = () => {
-    setCurrentScreen('live-preview')
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentScreen('live-preview')
+      setIsTransitioning(false)
+    }, 150)
   }
 
   const handleImageUpdate = useCallback((blob: Blob) => {
@@ -74,8 +84,13 @@ function App() {
   }, [addFrame])
 
   const handleCreateGIF = async () => {
-    await createGIF()
-    // Modal will open when gifBlob changes via useEffect
+    setGifError(null)
+    try {
+      await createGIF()
+      // Modal will open when gifBlob changes via useEffect
+    } catch {
+      setGifError('Encoding failed. Please try again.')
+    }
   }
 
   // Check for camera ID in URL on app load
@@ -127,7 +142,7 @@ function App() {
     return (
       <div className="h-full flex flex-col">
         <Header />
-        <div className="flex-1 overflow-hidden">
+        <div className={`flex-1 overflow-hidden transition-opacity duration-150 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
           <FullScreenLivePreview
             camera={selectedCamera}
             pollingInterval={pollingInterval}
@@ -153,7 +168,7 @@ function App() {
     return (
       <div className="h-full flex flex-col">
         <Header />
-        <div className="flex-1 overflow-hidden">
+        <div className={`flex-1 overflow-hidden transition-opacity duration-150 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
           <FullScreenCapturedFrames
             frames={frames}
             camera={selectedCamera}
@@ -164,6 +179,7 @@ function App() {
             isCreatingGIF={isCreatingGIF}
             captureProgress={progress}
             gifBlob={gifBlob}
+            gifError={gifError}
           />
         </div>
         

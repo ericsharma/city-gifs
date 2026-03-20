@@ -125,11 +125,11 @@ export function ScrollableFrameGrid({
                       onFrameSelectionToggle(index);
                     }}
                   >
-                    <div 
+                    <div
                       className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
-                        isSelected 
-                          ? 'bg-green-500 border-green-500' 
-                          : 'bg-black/30 border-white/70 hover:bg-black/50'
+                        isSelected
+                          ? 'border-[#D4952B] bg-[#D4952B]'
+                          : 'bg-black/30 border-white/50 hover:bg-black/50'
                       }`}
                     >
                       {isSelected && (

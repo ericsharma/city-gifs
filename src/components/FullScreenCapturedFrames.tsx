@@ -2,11 +2,7 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { ScrollableFrameGrid } from './ScrollableFrameGrid';
-import { 
-  ArrowLeft,
-  Timer,
-  Grid3X3
-} from 'lucide-react';
+import { ArrowLeft, Timer } from 'lucide-react';
 
 interface CapturedFrame {
   blob: Blob;
@@ -25,6 +21,7 @@ interface FullScreenCapturedFramesProps {
   isCreatingGIF: boolean;
   captureProgress: number;
   gifBlob?: Blob | null;
+  gifError?: string | null;
 }
 
 export function FullScreenCapturedFrames({
@@ -36,38 +33,47 @@ export function FullScreenCapturedFrames({
   onFrameSelectionToggle,
   isCreatingGIF,
   captureProgress,
-  gifBlob
+  gifBlob,
+  gifError,
 }: FullScreenCapturedFramesProps) {
   const [selectedFrame, setSelectedFrame] = useState<number | null>(null);
 
-  const estimatedDuration = frames.length > 1 
-    ? (frames[frames.length - 1].timestamp - frames[0].timestamp) / 1000 
-    : 0;
+  const estimatedDuration =
+    frames.length > 1 ? (frames[frames.length - 1].timestamp - frames[0].timestamp) / 1000 : 0;
 
   if (frames.length === 0) {
     return (
-      <div className="h-full bg-background flex flex-col">
-        <div className="p-4 border-b">
+      <div className="h-full flex flex-col" style={{ background: '#1A1814' }}>
+        <div className="p-4" style={{ borderBottom: '1px solid #4A453B' }}>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={onBackToPreview}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBackToPreview}
+              className="text-white/70 hover:text-white hover:bg-white/10"
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Camera
+              Camera
             </Button>
-            <div className="flex-1">
-              <h2 className="font-medium text-sm">Captured Frames</h2>
-              <p className="text-xs text-muted-foreground">{camera.name}</p>
-            </div>
           </div>
         </div>
 
         <div className="flex-1 flex items-center justify-center p-8 text-center">
           <div>
-            <Grid3X3 className="h-20 w-20 mx-auto mb-4 text-muted-foreground/50" />
-            <h3 className="text-lg font-medium mb-2">No frames captured yet</h3>
-            <p className="text-muted-foreground text-sm mb-6">
-              Go back to camera preview and start recording to capture frames
-            </p>
-            <Button onClick={onBackToPreview}>
+            <div className="font-mono text-xs tracking-widest mb-3" style={{ color: '#2E2A22' }}>
+              ⊞ &nbsp; ⊞ &nbsp; ⊞
+            </div>
+            <div className="font-mono text-sm tracking-widest mb-2" style={{ color: '#D4952B' }}>
+              CAPTURE BUFFER EMPTY
+            </div>
+            <div className="font-mono text-xs mb-8 tracking-wide" style={{ color: '#6B665C' }}>
+              NO FRAMES RECORDED
+            </div>
+            <Button
+              onClick={onBackToPreview}
+              className="font-medium"
+              style={{ background: '#D4952B', color: '#1A1814' }}
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Return to Camera
             </Button>
@@ -78,8 +84,8 @@ export function FullScreenCapturedFrames({
   }
 
   return (
-    <div className="h-full bg-background flex flex-col overflow-hidden">
-      {/* Header - Fixed */}
+    <div className="h-full bg-background flex flex-col overflow-hidden relative">
+      {/* Header */}
       <div className="flex-shrink-0 bg-background/95 backdrop-blur-sm border-b">
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
@@ -88,35 +94,50 @@ export function FullScreenCapturedFrames({
               Back to Camera
             </Button>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs font-mono">
                 {frames.length} frames
               </Badge>
               {estimatedDuration > 0 && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs font-mono">
                   <Timer className="h-3 w-3 mr-1" />
                   {estimatedDuration.toFixed(1)}s
                 </Badge>
               )}
             </div>
           </div>
-          
+
           <div>
-            <h2 className="font-medium text-sm sm:text-base">{camera.name}</h2>
-            <p className="text-xs text-muted-foreground">{camera.area}</p>
+            <h2
+              className="font-semibold text-sm sm:text-base"
+              style={{ fontFamily: "'Satoshi', 'DM Sans', system-ui, sans-serif" }}
+            >
+              {camera.name}
+            </h2>
+            <p className="font-mono text-xs text-muted-foreground mt-0.5">{camera.area}</p>
           </div>
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-0">
-        {/* GIF Ready Notification */}
-        {gifBlob && (
-          <div className="flex-shrink-0 p-4 border-b bg-muted/50">
+        {/* GIF Ready notification */}
+        {gifBlob && !isCreatingGIF && (
+          <div className="flex-shrink-0 p-3 border-b" style={{ background: 'rgba(212,149,43,0.08)', borderColor: 'rgba(212,149,43,0.2)' }}>
             <div className="text-center">
-              <h3 className="font-medium text-sm mb-2">🎉 GIF Created!</h3>
-              <p className="text-xs text-muted-foreground">
-                Your GIF is ready! Check the sharing modal for download and sharing options.
-              </p>
+              <span className="font-mono text-xs tracking-widest" style={{ color: '#D4952B' }}>
+                ✓ GIF READY
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Error notification */}
+        {gifError && (
+          <div className="flex-shrink-0 p-3 border-b" style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.2)' }}>
+            <div className="text-center">
+              <span className="font-mono text-xs tracking-widest" style={{ color: '#EF4444' }}>
+                ✕ {gifError}
+              </span>
             </div>
           </div>
         )}
@@ -138,24 +159,64 @@ export function FullScreenCapturedFrames({
         </div>
       </div>
 
-      {/* Selected Frame Preview */}
+      {/* GIF Encoding overlay — frosted glass */}
+      {isCreatingGIF && (
+        <div
+          className="absolute inset-0 z-50 flex items-center justify-center"
+          style={{
+            background: 'rgba(13,12,10,0.85)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+          }}
+        >
+          <div
+            className="text-center rounded-xl p-8 border"
+            style={{ background: '#242019', borderColor: '#4A453B', minWidth: 240 }}
+          >
+            <div className="font-mono text-sm tracking-widest mb-6" style={{ color: '#D4952B' }}>
+              ENCODING...
+            </div>
+            <div
+              className="w-full rounded-full overflow-hidden mb-3"
+              style={{ background: 'rgba(255,255,255,0.1)', height: 3 }}
+            >
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{ width: `${captureProgress}%`, background: '#D4952B' }}
+              />
+            </div>
+            <div className="font-mono text-xs" style={{ color: '#6B665C' }}>
+              {captureProgress}%
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Selected frame fullscreen preview */}
       {selectedFrame !== null && (
-        <div 
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.9)' }}
           onClick={() => setSelectedFrame(null)}
         >
           <div className="relative max-w-4xl w-full">
-            <div className="bg-black overflow-hidden rounded-lg aspect-video">
+            <div className="overflow-hidden rounded-lg aspect-video" style={{ background: '#0D0C0A' }}>
               <img
                 src={frames[selectedFrame].url}
                 alt={`Frame ${selectedFrame + 1} preview`}
                 className="w-full h-full object-contain"
               />
             </div>
-            <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-2 rounded">
-              Frame {selectedFrame + 1} of {frames.length}
+            <div
+              className="absolute bottom-4 left-4 font-mono text-xs px-3 py-1.5 rounded-sm"
+              style={{ background: 'rgba(13,12,10,0.8)', color: '#A09A8F' }}
+            >
+              FRAME {selectedFrame + 1} / {frames.length}
             </div>
-            <div className="absolute top-4 right-4 bg-black/70 text-white text-sm px-3 py-2 rounded">
+            <div
+              className="absolute top-4 right-4 font-mono text-xs px-3 py-1.5 rounded-sm"
+              style={{ background: 'rgba(13,12,10,0.8)', color: '#6B665C' }}
+            >
               {new Date(frames[selectedFrame].timestamp).toLocaleTimeString()}
             </div>
           </div>
