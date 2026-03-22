@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.0] - 2026-03-22
+- Redesigned camera view with warm amber design system (Satoshi/DM Sans/JetBrains Mono)
+- Added immersive/dreamy mode: sharp image shrinks to PIP thumbnail, blurred ambient background fills full screen
+- Immersive mode captures frames with blur+saturation applied so GIFs match what you see
+- Double-tap image or use toolbar button to toggle immersive mode
+- Manual HUD show/hide — EyeOff button hides controls, floating pill restores them
+- Frosted glass HUD panels with amber progress bar and monospace labels
+- Empty frames state, GIF encoding overlay, and error notifications redesigned
+- Extracted theme constants and image utilities to shared files
+
 ## [1.1.3] - 2026-01-18
 - Added native mobile sharing for camera locations using Web Share API
 - Implemented camera share functionality with automatic fallback to clipboard on desktop
